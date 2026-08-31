@@ -1,0 +1,5 @@
+{"question": "How many employees work in the Engineering department?", "db_id": "enterprise", "gold_sql": "SELECT COUNT(*) FROM employees JOIN departments ON employees.department_id = departments.department_id WHERE departments.department_name = 'Engineering';"}
+{"question": "What is the total order amount for each employee?", "db_id": "enterprise", "gold_sql": "SELECT employee_id, SUM(amount) FROM orders GROUP BY employee_id;"}
+{"question": "List the first and last names of employees hired before 2019.", "db_id": "enterprise", "gold_sql": "SELECT first_name, last_name FROM employees WHERE hire_date < '2019-01-01';"}
+{"question": "Which department has the highest average salary?", "db_id": "enterprise", "gold_sql": "SELECT departments.department_name FROM employees JOIN departments ON employees.department_id = departments.department_id GROUP BY departments.department_name ORDER BY AVG(employees.salary) DESC LIMIT 1;"}
+{"question": "What is the name of the customer with the largest single order?", "db_id": "enterprise", "gold_sql": "SELECT customer_name FROM orders ORDER BY amount DESC LIMIT 1;"}

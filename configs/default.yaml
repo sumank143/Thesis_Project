@@ -1,0 +1,11 @@
+models:
+  - name: gpt-4o
+    provider: openai
+    model_id: gpt-4o
+  - name: claude-sonnet-5
+    provider: anthropic
+    model_id: claude-sonnet-5
+
+dataset_path: data/sample_queries.jsonl
+schema_path: data/schema.sql
+output_dir: results

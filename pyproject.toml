@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nl2sql-eval"
+version = "0.1.0"
+description = "Evaluating Large Language Models for Natural Language to SQL Query Generation in Enterprise Applications"
+requires-python = ">=3.10"
+dependencies = [
+    "openai>=1.50.0",
+    "anthropic>=0.40.0",
+    "pandas>=2.0.0",
+    "pyyaml>=6.0",
+    "sqlparse>=0.5.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
