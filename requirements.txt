@@ -1,0 +1,5 @@
+python-dotenv==1.2.3
+google-genai==2.20.0
+langchain-google-genai==4.3.7
+langchain-openai==1.6.0
+mysql-connector-python==26.7.0

@@ -1,0 +1,116 @@
+id,level,model,run_num,result_signature,sql
+L1-01,1,claude-haiku-4.5,1,4490182459597063570,SELECT COUNT(*) FROM orders WHERE status = 'completed';
+L1-01,1,claude-haiku-4.5,2,4490182459597063570,SELECT COUNT(*) FROM orders WHERE status = 'completed';
+L1-01,1,claude-haiku-4.5,3,4490182459597063570,SELECT COUNT(*) FROM orders WHERE status = 'completed'
+L1-01,1,claude-haiku-4.5,4,4490182459597063570,SELECT COUNT(*) FROM orders WHERE status = 'completed'
+L1-01,1,claude-haiku-4.5,5,4490182459597063570,SELECT COUNT(*) FROM orders WHERE status = 'completed'
+L2-04,2,claude-haiku-4.5,1,-3631436936399648855,"SELECT o.order_id, o.order_date, o.status FROM orders o JOIN employees e ON o.handled_by = e.employee_id WHERE e.first_name = 'Julia' AND e.last_name = 'Becker';"
+L2-04,2,claude-haiku-4.5,2,-3631436936399648855,"SELECT o.order_id, o.order_date, o.status
+FROM orders o
+JOIN employees e ON o.handled_by = e.employee_id
+WHERE e.first_name = 'Julia' AND e.last_name = 'Becker';"
+L2-04,2,claude-haiku-4.5,3,-3631436936399648855,"SELECT o.order_id, o.order_date, o.status FROM orders o JOIN employees e ON o.handled_by = e.employee_id WHERE e.first_name = 'Julia' AND e.last_name = 'Becker';"
+L2-04,2,claude-haiku-4.5,4,-3631436936399648855,"SELECT o.order_id, o.order_date, o.status FROM orders o JOIN employees e ON o.handled_by = e.employee_id WHERE e.first_name = 'Julia' AND e.last_name = 'Becker';"
+L2-04,2,claude-haiku-4.5,5,-3631436936399648855,"SELECT o.order_id, o.order_date, o.status FROM orders o JOIN employees e ON o.handled_by = e.employee_id WHERE e.first_name = 'Julia' AND e.last_name = 'Becker';"
+L2-08,2,claude-haiku-4.5,1,1279906370892446075,"SELECT o.order_id, c.first_name, c.last_name, o.order_date FROM orders o JOIN customers c ON o.customer_id = c.customer_id WHERE c.city = 'Munich'"
+L2-08,2,claude-haiku-4.5,2,1279906370892446075,"SELECT o.order_id, c.first_name, c.last_name, o.order_date FROM orders o JOIN customers c ON o.customer_id = c.customer_id WHERE c.city = 'Munich'"
+L2-08,2,claude-haiku-4.5,3,1279906370892446075,"SELECT o.order_id, c.first_name, c.last_name, o.order_date FROM orders o JOIN customers c ON o.customer_id = c.customer_id WHERE c.city = 'Munich'"
+L2-08,2,claude-haiku-4.5,4,1279906370892446075,"SELECT o.order_id, c.first_name, c.last_name, o.order_date FROM orders o JOIN customers c ON o.customer_id = c.customer_id WHERE c.city = 'Munich'"
+L2-08,2,claude-haiku-4.5,5,1279906370892446075,"SELECT o.order_id, c.first_name, c.last_name, o.order_date FROM orders o JOIN customers c ON o.customer_id = c.customer_id WHERE c.city = 'Munich'"
+L3-05,3,claude-haiku-4.5,1,-673323004187589270,"SELECT c.category_name, SUM(oi.quantity * oi.unit_price) AS revenue FROM categories c LEFT JOIN products p ON c.category_id = p.category_id LEFT JOIN order_items oi ON p.product_id = oi.product_id GROUP BY c.category_id, c.category_name ORDER BY revenue DESC;"
+L3-05,3,claude-haiku-4.5,2,-673323004187589270,"SELECT c.category_name, SUM(oi.quantity * oi.unit_price) AS revenue FROM categories c LEFT JOIN products p ON c.category_id = p.category_id LEFT JOIN order_items oi ON p.product_id = oi.product_id GROUP BY c.category_id, c.category_name ORDER BY revenue DESC;"
+L3-05,3,claude-haiku-4.5,3,-673323004187589270,"SELECT c.category_name, SUM(oi.quantity * oi.unit_price) AS revenue FROM categories c LEFT JOIN products p ON c.category_id = p.category_id LEFT JOIN order_items oi ON p.product_id = oi.product_id GROUP BY c.category_id, c.category_name ORDER BY revenue DESC;"
+L3-05,3,claude-haiku-4.5,4,1447113690919630058,"SELECT c.category_name, SUM(oi.quantity * oi.unit_price) as revenue FROM categories c JOIN products p ON c.category_id = p.category_id JOIN order_items oi ON p.product_id = oi.product_id GROUP BY c.category_id, c.category_name ORDER BY revenue DESC;"
+L3-05,3,claude-haiku-4.5,5,1447113690919630058,"SELECT c.category_name, SUM(oi.quantity * oi.unit_price) AS revenue FROM categories c JOIN products p ON c.category_id = p.category_id JOIN order_items oi ON p.product_id = oi.product_id GROUP BY c.category_id, c.category_name ORDER BY revenue DESC;"
+L3-06,3,claude-haiku-4.5,1,-5409129271932248891,"SELECT c.first_name, c.last_name, COUNT(o.order_id) AS order_count FROM customers c LEFT JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY c.customer_id;"
+L3-06,3,claude-haiku-4.5,2,-5409129271932248891,"SELECT c.first_name, c.last_name, COUNT(o.order_id) AS order_count FROM customers c LEFT JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY c.customer_id;"
+L3-06,3,claude-haiku-4.5,3,-5409129271932248891,"SELECT c.first_name, c.last_name, COUNT(o.order_id) AS order_count FROM customers c LEFT JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY c.customer_id;"
+L3-06,3,claude-haiku-4.5,4,-5409129271932248891,"SELECT c.first_name, c.last_name, COUNT(o.order_id) as order_count FROM customers c LEFT JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY c.customer_id;"
+L3-06,3,claude-haiku-4.5,5,-5409129271932248891,"SELECT c.first_name, c.last_name, COUNT(o.order_id) AS order_count FROM customers c LEFT JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY c.customer_id;"
+L3-11,3,claude-haiku-4.5,1,7754133877668009898,"SELECT c.first_name, c.last_name, COUNT(o.order_id) AS order_count FROM customers c LEFT JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.first_name, c.last_name HAVING COUNT(o.order_id) > 3 ORDER BY order_count DESC;"
+L3-11,3,claude-haiku-4.5,2,7754133877668009898,"SELECT c.first_name, c.last_name, COUNT(o.order_id) AS order_count FROM customers c JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.first_name, c.last_name HAVING COUNT(o.order_id) > 3 ORDER BY order_count DESC;"
+L3-11,3,claude-haiku-4.5,3,7754133877668009898,"SELECT c.first_name, c.last_name, COUNT(o.order_id) AS order_count
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+HAVING COUNT(o.order_id) > 3
+ORDER BY order_count DESC;"
+L3-11,3,claude-haiku-4.5,4,7754133877668009898,"SELECT c.first_name, c.last_name, COUNT(o.order_id) AS order_count FROM customers c INNER JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.first_name, c.last_name HAVING COUNT(o.order_id) > 3 ORDER BY order_count DESC;"
+L3-11,3,claude-haiku-4.5,5,7754133877668009898,"SELECT c.first_name, c.last_name, COUNT(o.order_id) AS order_count FROM customers c JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.first_name, c.last_name HAVING COUNT(o.order_id) > 3 ORDER BY order_count DESC;"
+L4-02,4,claude-haiku-4.5,1,6719436870936361603,"SELECT c.customer_id, c.first_name, c.last_name, SUM(oi.quantity * oi.unit_price) AS total_spent FROM customers c JOIN orders o ON c.customer_id = o.customer_id JOIN order_items oi ON o.order_id = oi.order_id GROUP BY c.customer_id, c.first_name, c.last_name HAVING SUM(oi.quantity * oi.unit_price) > (SELECT AVG(customer_total) FROM (SELECT SUM(oi2.quantity * oi2.unit_price) AS customer_total FROM orders o2 JOIN order_items oi2 ON o2.order_id = oi2.order_id GROUP BY o2.customer_id) AS avg_table)"
+L4-02,4,claude-haiku-4.5,2,6719436870936361603,"SELECT 
+  c.customer_id,
+  c.first_name,
+  c.last_name,
+  SUM(oi.quantity * oi.unit_price) AS total_spent
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN order_items oi ON o.order_id = oi.order_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+HAVING SUM(oi.quantity * oi.unit_price) > (
+  SELECT AVG(customer_total)
+  FROM (
+    SELECT SUM(oi2.quantity * oi2.unit_price) AS customer_total
+    FROM orders o2
+    JOIN order_items oi2 ON o2.order_id = oi2.order_id
+    GROUP BY o2.customer_id
+  ) AS avg_subquery
+)
+ORDER BY total_spent DESC;"
+L4-02,4,claude-haiku-4.5,3,6719436870936361603,"SELECT c.customer_id, c.first_name, c.last_name, SUM(oi.quantity * oi.unit_price) AS total_spent FROM customers c JOIN orders o ON c.customer_id = o.customer_id JOIN order_items oi ON o.order_id = oi.order_id GROUP BY c.customer_id, c.first_name, c.last_name HAVING SUM(oi.quantity * oi.unit_price) > (SELECT AVG(customer_total) FROM (SELECT SUM(oi2.quantity * oi2.unit_price) AS customer_total FROM orders o2 JOIN order_items oi2 ON o2.order_id = oi2.order_id GROUP BY o2.customer_id) AS avg_table)"
+L4-02,4,claude-haiku-4.5,4,6719436870936361603,"SELECT c.customer_id, c.first_name, c.last_name, SUM(oi.quantity * oi.unit_price) as total_spent FROM customers c JOIN orders o ON c.customer_id = o.customer_id JOIN order_items oi ON o.order_id = oi.order_id GROUP BY c.customer_id, c.first_name, c.last_name HAVING SUM(oi.quantity * oi.unit_price) > (SELECT AVG(customer_total) FROM (SELECT SUM(oi2.quantity * oi2.unit_price) as customer_total FROM orders o2 JOIN order_items oi2 ON o2.order_id = oi2.order_id GROUP BY o2.customer_id) as avg_table) ORDER BY total_spent DESC;"
+L4-02,4,claude-haiku-4.5,5,6719436870936361603,"SELECT c.customer_id, c.first_name, c.last_name, SUM(oi.quantity * oi.unit_price) as total_spent FROM customers c JOIN orders o ON c.customer_id = o.customer_id JOIN order_items oi ON o.order_id = oi.order_id GROUP BY c.customer_id, c.first_name, c.last_name HAVING SUM(oi.quantity * oi.unit_price) > (SELECT AVG(customer_total) FROM (SELECT SUM(oi2.quantity * oi2.unit_price) as customer_total FROM orders o2 JOIN order_items oi2 ON o2.order_id = oi2.order_id GROUP BY o2.customer_id) as avg_table) ORDER BY total_spent DESC;"
+L4-06,4,claude-haiku-4.5,1,-5042691586640915879,"SELECT p.product_name, p.price, c.category_name
+FROM products p
+INNER JOIN categories c ON p.category_id = c.category_id
+WHERE (p.category_id, p.price) IN (
+  SELECT category_id, MAX(price)
+  FROM products
+  GROUP BY category_id
+)
+ORDER BY c.category_name;"
+L4-06,4,claude-haiku-4.5,2,-5042691586640915879,"SELECT p.product_name, p.price, c.category_name
+FROM products p
+JOIN categories c ON p.category_id = c.category_id
+WHERE (p.category_id, p.price) IN (
+  SELECT category_id, MAX(price)
+  FROM products
+  GROUP BY category_id
+)
+ORDER BY c.category_name, p.price DESC;"
+L4-06,4,claude-haiku-4.5,3,-5042691586640915879,"SELECT p.product_name, p.price, c.category_name
+FROM products p
+INNER JOIN categories c ON p.category_id = c.category_id
+INNER JOIN (
+  SELECT category_id, MAX(price) as max_price
+  FROM products
+  GROUP BY category_id
+) max_products ON p.category_id = max_products.category_id AND p.price = max_products.max_price;"
+L4-06,4,claude-haiku-4.5,4,-5042691586640915879,"SELECT p.product_name, p.price, c.category_name
+FROM products p
+JOIN categories c ON p.category_id = c.category_id
+WHERE p.price = (
+    SELECT MAX(p2.price)
+    FROM products p2
+    WHERE p2.category_id = p.category_id
+)
+ORDER BY c.category_name;"
+L4-06,4,claude-haiku-4.5,5,-5042691586640915879,"SELECT p.product_name, p.price, c.category_name
+FROM products p
+JOIN categories c ON p.category_id = c.category_id
+WHERE p.price = (
+  SELECT MAX(price)
+  FROM products p2
+  WHERE p2.category_id = p.category_id
+)
+ORDER BY c.category_name;"
+L4-08,4,claude-haiku-4.5,1,5428992350293650990,"SELECT o.order_id, SUM(oi.quantity * oi.unit_price) as order_value FROM orders o JOIN order_items oi ON o.order_id = oi.order_id GROUP BY o.order_id HAVING SUM(oi.quantity * oi.unit_price) > (SELECT AVG(order_total) FROM (SELECT SUM(quantity * unit_price) as order_total FROM order_items GROUP BY order_id) as subquery) ORDER BY o.order_id;"
+L4-08,4,claude-haiku-4.5,2,5428992350293650990,"SELECT o.order_id, SUM(oi.quantity * oi.unit_price) AS order_value FROM orders o JOIN order_items oi ON o.order_id = oi.order_id GROUP BY o.order_id HAVING SUM(oi.quantity * oi.unit_price) > (SELECT AVG(order_total) FROM (SELECT SUM(oi2.quantity * oi2.unit_price) AS order_total FROM orders o2 JOIN order_items oi2 ON o2.order_id = oi2.order_id GROUP BY o2.order_id) AS avg_orders) ORDER BY order_value DESC;"
+L4-08,4,claude-haiku-4.5,3,5428992350293650990,"SELECT o.order_id, SUM(oi.quantity * oi.unit_price) as order_value FROM orders o JOIN order_items oi ON o.order_id = oi.order_id GROUP BY o.order_id HAVING SUM(oi.quantity * oi.unit_price) > (SELECT AVG(order_total) FROM (SELECT SUM(quantity * unit_price) as order_total FROM order_items GROUP BY order_id) as avg_orders) ORDER BY o.order_id;"
+L4-08,4,claude-haiku-4.5,4,5428992350293650990,"SELECT o.order_id, SUM(oi.quantity * oi.unit_price) AS order_value FROM orders o JOIN order_items oi ON o.order_id = oi.order_id GROUP BY o.order_id HAVING SUM(oi.quantity * oi.unit_price) > (SELECT AVG(order_total) FROM (SELECT SUM(quantity * unit_price) AS order_total FROM order_items GROUP BY order_id) AS avg_orders) ORDER BY o.order_id;"
+L4-08,4,claude-haiku-4.5,5,5428992350293650990,"SELECT o.order_id, SUM(oi.quantity * oi.unit_price) AS order_value FROM orders o JOIN order_items oi ON o.order_id = oi.order_id GROUP BY o.order_id HAVING SUM(oi.quantity * oi.unit_price) > (SELECT AVG(order_total) FROM (SELECT SUM(quantity * unit_price) AS order_total FROM order_items GROUP BY order_id) AS subquery) ORDER BY order_value DESC;"
+L4-10,4,claude-haiku-4.5,1,-609987672743021770,"SELECT c.first_name, c.last_name, p.product_name, oi.quantity, oi.unit_price, (oi.quantity * oi.unit_price) AS line_total FROM customers c JOIN orders o ON c.customer_id = o.customer_id JOIN order_items oi ON o.order_id = oi.order_id JOIN products p ON oi.product_id = p.product_id WHERE c.customer_id = (SELECT customer_id FROM orders o2 JOIN order_items oi2 ON o2.order_id = oi2.order_id GROUP BY customer_id ORDER BY SUM(oi2.quantity * oi2.unit_price) DESC LIMIT 1) ORDER BY o.order_date;"
+L4-10,4,claude-haiku-4.5,2,-609987672743021770,"SELECT c.first_name, c.last_name, p.product_name, oi.quantity, oi.unit_price, (oi.quantity * oi.unit_price) AS line_total FROM customers c JOIN orders o ON c.customer_id = o.customer_id JOIN order_items oi ON o.order_id = oi.order_id JOIN products p ON oi.product_id = p.product_id WHERE c.customer_id = (SELECT customer_id FROM (SELECT o.customer_id, SUM(oi.quantity * oi.unit_price) AS total_spent FROM orders o JOIN order_items oi ON o.order_id = oi.order_id GROUP BY o.customer_id ORDER BY total_spent DESC LIMIT 1) AS top_customer) ORDER BY line_total DESC;"
+L4-10,4,claude-haiku-4.5,3,-609987672743021770,"SELECT c.first_name, c.last_name, p.product_name, oi.quantity, oi.unit_price, (oi.quantity * oi.unit_price) AS line_total FROM customers c JOIN orders o ON c.customer_id = o.customer_id JOIN order_items oi ON o.order_id = oi.order_id JOIN products p ON oi.product_id = p.product_id WHERE c.customer_id = (SELECT customer_id FROM orders o2 JOIN order_items oi2 ON o2.order_id = oi2.order_id GROUP BY customer_id ORDER BY SUM(oi2.quantity * oi2.unit_price) DESC LIMIT 1) ORDER BY o.order_date;"
+L4-10,4,claude-haiku-4.5,4,-609987672743021770,"SELECT c.first_name, c.last_name, p.product_name, oi.quantity, oi.unit_price, (oi.quantity * oi.unit_price) AS line_total FROM customers c JOIN orders o ON c.customer_id = o.customer_id JOIN order_items oi ON o.order_id = oi.order_id JOIN products p ON oi.product_id = p.product_id WHERE c.customer_id = (SELECT customer_id FROM orders o2 JOIN order_items oi2 ON o2.order_id = oi2.order_id GROUP BY o2.customer_id ORDER BY SUM(oi2.quantity * oi2.unit_price) DESC LIMIT 1) ORDER BY o.order_date, oi.order_item_id;"
+L4-10,4,claude-haiku-4.5,5,-609987672743021770,"SELECT c.first_name, c.last_name, p.product_name, oi.quantity, oi.unit_price, (oi.quantity * oi.unit_price) as line_total FROM customers c JOIN orders o ON c.customer_id = o.customer_id JOIN order_items oi ON o.order_id = oi.order_id JOIN products p ON oi.product_id = p.product_id WHERE c.customer_id = (SELECT customer_id FROM orders o2 JOIN order_items oi2 ON o2.order_id = oi2.order_id GROUP BY customer_id ORDER BY SUM(oi2.quantity * oi2.unit_price) DESC LIMIT 1) ORDER BY o.order_date;"

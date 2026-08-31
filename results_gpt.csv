@@ -1,0 +1,209 @@
+id,level,model,ran_ok,correct,model_rows,truth_rows,model_sql,error
+L1-01,1,gpt-4.1-mini,True,True,1,1,SELECT COUNT(*) FROM orders WHERE status = 'completed',
+L1-02,1,gpt-4.1-mini,True,True,3,3,"SELECT product_name, price FROM products WHERE price > 150 AND price < 300;",
+L1-03,1,gpt-4.1-mini,True,True,3,3,"SELECT first_name, last_name, hire_date FROM employees WHERE YEAR(hire_date) = 2023;",
+L1-04,1,gpt-4.1-mini,True,True,5,5,"SELECT product_name, price FROM products ORDER BY price DESC LIMIT 5;",
+L1-05,1,gpt-4.1-mini,True,True,7,7,"SELECT inventory_id, product_id, warehouse_id, quantity FROM inventory WHERE quantity < 50;",
+L1-06,1,gpt-4.1-mini,True,True,1,1,SELECT COUNT(*) FROM categories;,
+L1-07,1,gpt-4.1-mini,True,True,1,1,"SELECT product_name, price FROM products ORDER BY price ASC LIMIT 1;",
+L1-08,1,gpt-4.1-mini,True,True,2,2,"SELECT first_name, last_name FROM employees WHERE manager_id IS NULL;",
+L1-09,1,gpt-4.1-mini,True,True,2,2,"SELECT first_name, last_name, city FROM customers WHERE city = 'Hamburg';",
+L1-10,1,gpt-4.1-mini,True,True,2,2,"SELECT department_name, location FROM departments WHERE location = 'Berlin';",
+L2-01,2,gpt-4.1-mini,True,True,3,3,"SELECT p.product_name, c.category_name
+FROM products p
+JOIN categories c ON p.category_id = c.category_id
+WHERE c.category_name = 'Laptops'",
+L2-02,2,gpt-4.1-mini,True,True,14,14,"SELECT DISTINCT c.first_name, c.last_name
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id;",
+L2-03,2,gpt-4.1-mini,True,True,3,3,"SELECT e.first_name, e.last_name, d.department_name
+FROM employees e
+JOIN departments d ON e.department_id = d.department_id
+WHERE d.department_name = 'Sales'",
+L2-04,2,gpt-4.1-mini,True,True,12,12,"SELECT o.order_id, o.order_date, o.status
+FROM orders o
+JOIN employees e ON o.handled_by = e.employee_id
+WHERE e.first_name = 'Julia' AND e.last_name = 'Becker'",
+L2-05,2,gpt-4.1-mini,True,True,15,15,"SELECT product_id, quantity FROM inventory WHERE warehouse_id = (SELECT warehouse_id FROM warehouses WHERE city = 'Munich' AND is_active = 1 LIMIT 1);",
+L2-06,2,gpt-4.1-mini,True,False,39,24,"SELECT p.product_name, i.quantity FROM products p JOIN inventory i ON p.product_id = i.product_id WHERE i.quantity > 2;",
+L2-07,2,gpt-4.1-mini,True,True,3,3,"SELECT p.product_name, i.quantity
+FROM products p
+JOIN inventory i ON p.product_id = i.product_id
+WHERE i.quantity < 30;",
+L2-08,2,gpt-4.1-mini,True,True,10,10,"SELECT o.order_id, c.first_name, c.last_name, o.order_date
+FROM orders o
+JOIN customers c ON o.customer_id = c.customer_id
+WHERE c.city = 'Munich';",
+L2-09,2,gpt-4.1-mini,True,True,8,8,"SELECT oi.order_id, oi.product_id, oi.quantity, oi.unit_price
+FROM order_items oi
+JOIN orders o ON oi.order_id = o.order_id
+WHERE o.status = 'cancelled'",
+L2-10,2,gpt-4.1-mini,True,True,3,3,"SELECT p.product_name, c.category_name
+FROM products p
+JOIN categories c ON p.category_id = c.category_id
+WHERE c.category_name = 'Audio'",
+L2-11,2,gpt-4.1-mini,True,True,1,1,"SELECT e.first_name, e.last_name, d.department_name
+FROM employees e
+JOIN departments d ON e.department_id = d.department_id
+WHERE d.department_name = 'Fulfillment'",
+L2-12,2,gpt-4.1-mini,True,True,19,19,"SELECT o.order_id, c.first_name, c.last_name, o.status
+FROM orders o
+JOIN customers c ON o.customer_id = c.customer_id
+WHERE o.status = 'completed' AND c.country = 'Germany'",
+L2-13,2,gpt-4.1-mini,True,True,6,6,"SELECT product_id, quantity
+FROM inventory i
+JOIN warehouses w ON i.warehouse_id = w.warehouse_id
+WHERE w.warehouse_name = 'Hamburg Fulfillment Center' AND quantity > 100;",
+L2-14,2,gpt-4.1-mini,True,True,6,6,"SELECT DISTINCT p.product_name, oi.unit_price
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+WHERE oi.unit_price > 500;",
+L2-15,2,gpt-4.1-mini,True,True,3,3,"SELECT p.product_name, c.category_name
+FROM products p
+JOIN categories c ON p.category_id = c.category_id
+WHERE c.category_name = 'Fitness Equipment'",
+L3-01,3,gpt-4.1-mini,True,True,4,4,"SELECT d.department_name, COUNT(e.employee_id) AS employee_count
+FROM departments d
+LEFT JOIN employees e ON d.department_id = e.department_id
+GROUP BY d.department_name;",
+L3-02,3,gpt-4.1-mini,True,True,5,5,"SELECT p.product_name, SUM(oi.quantity) AS total_sold
+FROM products p
+JOIN order_items oi ON p.product_id = oi.product_id
+GROUP BY p.product_id, p.product_name
+ORDER BY total_sold DESC
+LIMIT 5;",
+L3-03,3,gpt-4.1-mini,True,True,2,2,"SELECT YEAR(order_date) AS order_year, COUNT(*) AS order_count FROM orders GROUP BY order_year ORDER BY order_year;",
+L3-04,3,gpt-4.1-mini,True,True,1,1,"SELECT COUNT(DISTINCT o.customer_id) AS laptop_customers
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+JOIN categories c ON p.category_id = c.category_id
+WHERE c.category_name = 'laptops';",
+L3-05,3,gpt-4.1-mini,True,True,8,8,"SELECT c.category_name, SUM(oi.quantity * oi.unit_price) AS revenue
+FROM categories c
+JOIN products p ON c.category_id = p.category_id
+JOIN order_items oi ON p.product_id = oi.product_id
+GROUP BY c.category_name;",
+L3-06,3,gpt-4.1-mini,True,False,18,14,"SELECT c.first_name, c.last_name, COUNT(o.order_id) AS order_count
+FROM customers c
+LEFT JOIN orders o ON c.customer_id = o.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name;",
+L3-07,3,gpt-4.1-mini,True,False,6,3,"SELECT e.first_name, e.last_name, COUNT(o.order_id) AS orders_handled
+FROM employees e
+LEFT JOIN orders o ON e.employee_id = o.handled_by
+GROUP BY e.employee_id, e.first_name, e.last_name;",
+L3-08,3,gpt-4.1-mini,True,True,3,3,"SELECT w.warehouse_name, IFNULL(SUM(i.quantity), 0) AS total_stock
+FROM warehouses w
+LEFT JOIN inventory i ON w.warehouse_id = i.warehouse_id
+GROUP BY w.warehouse_name;",
+L3-09,3,gpt-4.1-mini,True,True,8,8,"SELECT c.category_name, AVG(p.price) AS avg_price
+FROM categories c
+JOIN products p ON c.category_id = p.category_id
+GROUP BY c.category_name;",
+L3-10,3,gpt-4.1-mini,True,True,11,11,"SELECT c.category_name, COUNT(p.product_id) AS product_count
+FROM categories c
+LEFT JOIN products p ON c.category_id = p.category_id
+GROUP BY c.category_id, c.category_name;",
+L3-11,3,gpt-4.1-mini,True,True,5,5,"SELECT c.first_name, c.last_name, COUNT(o.order_id) AS order_count
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+HAVING COUNT(o.order_id) > 3;",
+L3-12,3,gpt-4.1-mini,True,True,4,4,"SELECT c.category_name, SUM(oi.quantity * oi.unit_price) AS revenue
+FROM categories c
+JOIN products p ON c.category_id = p.category_id
+JOIN order_items oi ON p.product_id = oi.product_id
+GROUP BY c.category_name
+HAVING revenue > 5000;",
+L3-13,3,gpt-4.1-mini,True,True,4,4,"SELECT status, COUNT(*) AS order_count FROM orders GROUP BY status;",
+L3-14,3,gpt-4.1-mini,True,True,5,5,"SELECT p.product_name, SUM(i.quantity) AS total_units
+FROM products p
+JOIN inventory i ON p.product_id = i.product_id
+GROUP BY p.product_id, p.product_name
+ORDER BY total_units DESC
+LIMIT 5;",
+L3-15,3,gpt-4.1-mini,True,True,8,8,"SELECT c.category_name, AVG(oi.unit_price) AS avg_sold_price
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN categories c ON p.category_id = c.category_id
+GROUP BY c.category_name;",
+L4-01,4,gpt-4.1-mini,True,False,1,3,"SELECT e.first_name, e.last_name, SUM(oi.quantity * oi.unit_price) AS smartphone_sales
+FROM employees e
+JOIN orders o ON e.employee_id = o.handled_by
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+JOIN categories c ON p.category_id = c.category_id
+WHERE c.category_name = 'Smartphones'
+GROUP BY e.employee_id, e.first_name, e.last_name
+ORDER BY smartphone_sales DESC
+LIMIT 1;",
+L4-02,4,gpt-4.1-mini,True,True,6,6,"SELECT c.customer_id, c.first_name, c.last_name, SUM(oi.quantity * oi.unit_price) AS total_spent
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN order_items oi ON o.order_id = oi.order_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+HAVING total_spent > (
+    SELECT AVG(customer_total) FROM (
+        SELECT SUM(oi2.quantity * oi2.unit_price) AS customer_total
+        FROM customers c2
+        JOIN orders o2 ON c2.customer_id = o2.customer_id
+        JOIN order_items oi2 ON o2.order_id = oi2.order_id
+        GROUP BY c2.customer_id
+    ) AS avg_subquery
+)",
+L4-03,4,gpt-4.1-mini,True,True,8,8,"SELECT product_name, price 
+FROM products 
+WHERE price > (SELECT AVG(price) FROM products);",
+L4-04,4,gpt-4.1-mini,True,True,22,22,"SELECT product_name, price, RANK() OVER (ORDER BY price DESC) AS price_rank FROM products;",
+L4-05,4,gpt-4.1-mini,True,True,2,2,SELECT product_name FROM products WHERE product_id NOT IN (SELECT DISTINCT product_id FROM order_items);,
+L4-06,4,gpt-4.1-mini,True,True,8,8,"SELECT p.product_name, p.price, c.category_name
+FROM products p
+JOIN categories c ON p.category_id = c.category_id
+WHERE (p.category_id, p.price) IN (
+    SELECT category_id, MAX(price)
+    FROM products
+    GROUP BY category_id
+)",
+L4-07,4,gpt-4.1-mini,True,False,18,14,"SELECT c.first_name, c.last_name, 
+       IFNULL(SUM(oi.quantity * oi.unit_price), 0) AS total_spent,
+       RANK() OVER (ORDER BY IFNULL(SUM(oi.quantity * oi.unit_price), 0) DESC) AS spend_rank
+FROM customers c
+LEFT JOIN orders o ON c.customer_id = o.customer_id
+LEFT JOIN order_items oi ON o.order_id = oi.order_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+ORDER BY spend_rank;",
+L4-08,4,gpt-4.1-mini,True,True,16,16,"SELECT o.order_id, SUM(oi.quantity * oi.unit_price) AS order_value
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+GROUP BY o.order_id
+HAVING order_value > (
+    SELECT AVG(order_total) FROM (
+        SELECT SUM(quantity * unit_price) AS order_total
+        FROM order_items
+        GROUP BY order_id
+    ) AS avg_subquery
+)",
+L4-09,4,gpt-4.1-mini,True,True,5,5,"SELECT DISTINCT c.first_name, c.last_name
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+JOIN inventory i ON p.product_id = i.product_id
+JOIN warehouses w ON i.warehouse_id = w.warehouse_id
+JOIN categories cat ON p.category_id = cat.category_id
+WHERE w.city = 'Berlin' 
+  AND w.is_active = 1
+  AND cat.category_name = 'laptops';",
+L4-10,4,gpt-4.1-mini,True,True,19,19,"SELECT c.first_name, c.last_name, p.product_name, oi.quantity, oi.unit_price, (oi.quantity * oi.unit_price) AS line_total
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+WHERE c.customer_id = (
+    SELECT customer_id
+    FROM orders o2
+    JOIN order_items oi2 ON o2.order_id = oi2.order_id
+    GROUP BY o2.customer_id
+    ORDER BY SUM(oi2.quantity * oi2.unit_price) DESC
+    LIMIT 1
+)",
