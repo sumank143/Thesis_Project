@@ -9,14 +9,20 @@ ground truth.
 
 ## Research questions
 
-- **RQ1 — Accuracy**: How accurate is each model at each query complexity
-  level, and how much does providing the schema in the prompt matter?
-- **RQ2 — Failure modes**: When a model gets it wrong, why — hallucinated
-  schema, wrong join path, wrong aggregation, wrong filter, or a syntax
-  error?
-- **RQ3 — Consistency & efficiency**: How repeatable are a model's answers
-  across repeated runs of the same question, and how do its query plans
-  compare to the ground-truth query (full scans, rows examined)?
+As defined in the thesis (Section 1.3):
+
+- **RQ1 — Accuracy**: At what degree of accuracy can GPT-4.1-mini, Claude
+  Haiku 4.5, and Gemini 3.5 Flash-Lite produce correct SQL against an
+  enterprise MySQL schema, across the four query complexity levels?
+- **RQ2 — Failure patterns**: What types of errors does each LLM most
+  commonly produce, and how does the error mix change with query
+  complexity?
+- **RQ3 — Enterprise suitability**: Which LLM is best suited for
+  production use, judged on query efficiency (execution plan vs. ground
+  truth) and output consistency (same question, repeated)?
+- **RQ4 — Prompting effectiveness**: How much does schema-aware
+  (engineered) prompting improve SQL-generation accuracy over zero-shot
+  (unengineered) prompting?
 
 ## Database
 
@@ -75,8 +81,9 @@ loaded) must be running on `localhost`.
    `ran_ok`/`correct` outcomes.
 
 2. **Aggregate accuracy** — `aggregate_accuracy.py` rolls the six results
-   CSVs into `accuracy_summary.csv` (overall) and `accuracy_by_level.csv`
-   (by complexity level).
+   CSVs into `accuracy_by_level.csv` (RQ1: accuracy per complexity level)
+   and `accuracy_summary.csv` (RQ4: overall accuracy, schema-aware vs.
+   zero-shot).
 
 3. **Classify failures (RQ2)** — three-step pipeline over the results CSVs:
    - `extract_failures.py` → pulls every failing row into
@@ -88,8 +95,9 @@ loaded) must be running on `localhost`.
      model, condition, and level into `rq2_failure_summary.csv`
 
 4. **Measure consistency (RQ3)** — `measure_consistency.py` re-runs a
-   representative subset of questions 5x per model and records whether the
-   result set is identical across repeats (`consistency_<model>.csv`).
+   representative subset of 10 questions 5x per model and records whether
+   the result set is identical across all repeats
+   (`consistency_<model>.csv`).
 
 5. **Measure efficiency (RQ3)** — `measure_efficiency.py` runs `EXPLAIN` on
    each correct model query and its ground-truth counterpart, comparing
@@ -116,18 +124,42 @@ model calls, SQL execution, and scoring logic against a single query.
 
 ## Results snapshot
 
-Overall accuracy (correct / 50):
+Overall accuracy (correct / 50), from `accuracy_summary.csv`:
 
 | Model                   | Schema-aware | Zero-shot |
 |--------------------------|:-----------:|:---------:|
-| GPT-4.1-mini              | 45          | 29        |
-| Claude Haiku 4.5          | 45          | 31        |
-| Gemini 3.5 Flash-Lite     | 40          | 28        |
+| GPT-4.1-mini              | 45 (90%)    | 29 (58%)  |
+| Claude Haiku 4.5          | 45 (90%)    | 31 (62%)  |
+| Gemini 3.5 Flash-Lite     | 40 (80%)    | 28 (56%)  |
 
-Providing the schema roughly doubles the rate of hallucinated-schema
-failures avoided; see [accuracy_summary.csv](accuracy_summary.csv),
-[rq2_failure_summary.csv](rq2_failure_summary.csv), and
-[charts/](charts/) for the full breakdown.
+Key findings (thesis Chapter 4):
+
+- **RQ1**: Every model solves all 10 Level-1 (single-table) queries
+  regardless of prompting condition. Zero-shot accuracy then collapses as
+  soon as a query needs more than one table (Level 2+); schema-aware
+  accuracy stays at 80%+ for GPT-4.1-mini and Claude Haiku 4.5 across all
+  levels, and 60%+ for Gemini 3.5 Flash-Lite.
+- **RQ2**: Of 82 total failures, 56 (68%) are hallucinated-schema errors —
+  almost all zero-shot. Once the schema is provided, hallucinated-schema
+  errors disappear entirely and wrong-join-path becomes the dominant
+  failure (21 of 82 overall); wrong-aggregation and wrong-filter errors
+  appear only at Level 4.
+- **RQ3**: On correct queries, each model's execution plan matches the
+  ground truth's about 9 times out of 10 (Claude 41/45, GPT 40/45, Gemini
+  35/40). Output consistency (5 repeats x 10 questions) is 10/10 for
+  GPT-4.1-mini, 9/10 for Claude Haiku 4.5, 8/10 for Gemini
+  3.5 Flash-Lite — with the inconsistent queries concentrated at Levels 3–4.
+- **RQ4**: Schema-aware prompting lifts accuracy for every model
+  (GPT-4.1-mini +32pp, Claude Haiku 4.5 +28pp, Gemini 3.5 Flash-Lite
+  +24pp) and eliminates hallucinated-schema errors outright — but it does
+  not fix the harder reasoning failures (wrong joins/aggregation/filters),
+  which persist and grow with query complexity even with the schema in
+  hand.
+
+See [accuracy_summary.csv](accuracy_summary.csv),
+[accuracy_by_level.csv](accuracy_by_level.csv),
+[rq2_failure_summary.csv](rq2_failure_summary.csv), the `consistency_*.csv`
+/ `efficiency_*.csv` files, and [charts/](charts/) for the full breakdown.
 
 ## Repository layout
 
@@ -136,7 +168,7 @@ queries.json                 50-question benchmark (question, expected columns, 
 seed_data.sql                Deterministic seed for the thesis_nl2sql database
 ER-Diagram.svg / erd.png     Entity-relationship diagram
 run_pipeline_*.py            Per-model, per-condition SQL generation + scoring
-aggregate_accuracy.py        RQ1: accuracy aggregation
+aggregate_accuracy.py        RQ1 (by level) + RQ4 (schema-aware vs zero-shot) accuracy aggregation
 extract_failures.py          RQ2: pull failing rows
 classify_failures.py         RQ2: auto-suggest failure category
 tally_failures.py            RQ2: tally by model/condition/level
@@ -144,7 +176,8 @@ measure_consistency.py       RQ3: repeat-run consistency
 measure_efficiency.py        RQ3: EXPLAIN-based efficiency comparison
 generate_charts.py           Builds charts/ from the aggregated CSVs
 results_*.csv                Raw per-query results per model/condition
-accuracy_*.csv               Aggregated accuracy (RQ1)
+accuracy_by_level.csv        Aggregated accuracy by complexity level (RQ1)
+accuracy_summary.csv         Aggregated overall accuracy by condition (RQ4)
 failures_*.csv, rq2_*.csv    Failure classification (RQ2)
 consistency_*.csv            Consistency results (RQ3)
 efficiency_*.csv             Efficiency results (RQ3)
