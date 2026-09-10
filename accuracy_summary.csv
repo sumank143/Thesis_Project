@@ -1,0 +1,7 @@
+model,condition,ran_ok,correct,total
+claude-haiku-4.5,schema-aware,50,45,50
+claude-haiku-4.5,zero-shot,33,31,50
+gemini-3.5-flash-lite,schema-aware,50,40,50
+gemini-3.5-flash-lite,zero-shot,30,28,50
+gpt-4.1-mini,schema-aware,50,45,50
+gpt-4.1-mini,zero-shot,31,29,50

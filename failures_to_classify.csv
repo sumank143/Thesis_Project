@@ -1,0 +1,311 @@
+id,level,model,ran_ok,correct,model_sql,error,category
+L2-06,2,gpt-4.1-mini,True,False,"SELECT p.product_name, i.quantity FROM products p JOIN inventory i ON p.product_id = i.product_id WHERE i.quantity > 2;",,
+L3-06,3,gpt-4.1-mini,True,False,"SELECT c.first_name, c.last_name, COUNT(o.order_id) AS order_count
+FROM customers c
+LEFT JOIN orders o ON c.customer_id = o.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name;",,
+L3-07,3,gpt-4.1-mini,True,False,"SELECT e.first_name, e.last_name, COUNT(o.order_id) AS orders_handled
+FROM employees e
+LEFT JOIN orders o ON e.employee_id = o.handled_by
+GROUP BY e.employee_id, e.first_name, e.last_name;",,
+L4-01,4,gpt-4.1-mini,True,False,"SELECT e.first_name, e.last_name, SUM(oi.quantity * oi.unit_price) AS smartphone_sales
+FROM employees e
+JOIN orders o ON e.employee_id = o.handled_by
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+JOIN categories c ON p.category_id = c.category_id
+WHERE c.category_name = 'Smartphones'
+GROUP BY e.employee_id, e.first_name, e.last_name
+ORDER BY smartphone_sales DESC
+LIMIT 1;",,
+L4-07,4,gpt-4.1-mini,True,False,"SELECT c.first_name, c.last_name, 
+       IFNULL(SUM(oi.quantity * oi.unit_price), 0) AS total_spent,
+       RANK() OVER (ORDER BY IFNULL(SUM(oi.quantity * oi.unit_price), 0) DESC) AS spend_rank
+FROM customers c
+LEFT JOIN orders o ON c.customer_id = o.customer_id
+LEFT JOIN order_items oi ON o.order_id = oi.order_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+ORDER BY spend_rank;",,
+L2-04,2,gpt-4.1-mini-zeroshot,False,False,"SELECT o.order_id, o.order_date, o.status
+FROM orders o
+JOIN employees e ON o.employee_id = e.employee_id
+WHERE e.first_name = 'Julia' AND e.last_name = 'Becker';",EXEC_FAIL: 1054 (42S22): Unknown column 'o.employee_id' in 'on clause',
+L2-05,2,gpt-4.1-mini-zeroshot,False,False,"SELECT product_id, quantity FROM warehouse_stock WHERE warehouse_location = 'Munich Regional Warehouse';",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.warehouse_stock' doesn't exist,
+L2-06,2,gpt-4.1-mini-zeroshot,False,False,"SELECT product_name, quantity FROM products WHERE quantity > 2;",EXEC_FAIL: 1054 (42S22): Unknown column 'quantity' in 'field list',
+L2-07,2,gpt-4.1-mini-zeroshot,False,False,"SELECT product_name, quantity FROM products WHERE quantity < 30;",EXEC_FAIL: 1054 (42S22): Unknown column 'quantity' in 'field list',
+L2-09,2,gpt-4.1-mini-zeroshot,False,False,"SELECT li.order_id, li.product_id, li.quantity, li.unit_price
+FROM line_items li
+JOIN orders o ON li.order_id = o.order_id
+WHERE o.status = 'cancelled';",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.line_items' doesn't exist,
+L2-13,2,gpt-4.1-mini-zeroshot,False,False,"SELECT product_id, quantity FROM inventory WHERE warehouse = 'Hamburg Fulfillment Center' AND quantity > 100;",EXEC_FAIL: 1054 (42S22): Unknown column 'warehouse' in 'where clause',
+L2-14,2,gpt-4.1-mini-zeroshot,False,False,"SELECT product_name, unit_price FROM products WHERE unit_price > 500;",EXEC_FAIL: 1054 (42S22): Unknown column 'unit_price' in 'field list',
+L3-02,3,gpt-4.1-mini-zeroshot,False,False,"SELECT product_name, SUM(units_sold) AS total_sold
+FROM sales
+GROUP BY product_name
+ORDER BY total_sold DESC
+LIMIT 5;",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.sales' doesn't exist,
+L3-04,3,gpt-4.1-mini-zeroshot,False,False,SELECT COUNT(DISTINCT customer_id) AS laptop_customers FROM orders WHERE product_name LIKE '%laptop%';,EXEC_FAIL: 1054 (42S22): Unknown column 'product_name' in 'where clause',
+L3-06,3,gpt-4.1-mini-zeroshot,True,False,"SELECT c.first_name, c.last_name, COUNT(o.order_id) AS order_count
+FROM customers c
+LEFT JOIN orders o ON c.customer_id = o.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name;",,
+L3-07,3,gpt-4.1-mini-zeroshot,False,False,"SELECT e.first_name, e.last_name, COUNT(o.order_id) AS orders_handled
+FROM employees e
+LEFT JOIN orders o ON e.employee_id = o.employee_id
+GROUP BY e.employee_id, e.first_name, e.last_name;",EXEC_FAIL: 1054 (42S22): Unknown column 'o.employee_id' in 'on clause',
+L3-08,3,gpt-4.1-mini-zeroshot,False,False,"SELECT warehouse_name, SUM(stock) AS total_stock FROM warehouse_stock GROUP BY warehouse_name;",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.warehouse_stock' doesn't exist,
+L3-09,3,gpt-4.1-mini-zeroshot,False,False,"SELECT category_name, AVG(price) AS avg_price FROM products GROUP BY category_name;",EXEC_FAIL: 1054 (42S22): Unknown column 'category_name' in 'field list',
+L3-14,3,gpt-4.1-mini-zeroshot,False,False,"SELECT product_name, units_in_stock AS total_units FROM products ORDER BY units_in_stock DESC LIMIT 5;",EXEC_FAIL: 1054 (42S22): Unknown column 'units_in_stock' in 'field list',
+L3-15,3,gpt-4.1-mini-zeroshot,False,False,"SELECT c.category_name, AVG(p.sold_unit_price) AS avg_sold_price
+FROM products p
+JOIN categories c ON p.category_id = c.category_id
+GROUP BY c.category_name;",EXEC_FAIL: 1054 (42S22): Unknown column 'p.sold_unit_price' in 'field list',
+L4-01,4,gpt-4.1-mini-zeroshot,False,False,"SELECT e.first_name, e.last_name, SUM(s.sale_value) AS smartphone_sales
+FROM employees e
+JOIN sales s ON e.employee_id = s.employee_id
+JOIN products p ON s.product_id = p.product_id
+WHERE p.category = 'Smartphones'
+GROUP BY e.employee_id, e.first_name, e.last_name
+ORDER BY smartphone_sales DESC
+LIMIT 1;",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.sales' doesn't exist,
+L4-02,4,gpt-4.1-mini-zeroshot,False,False,"SELECT c.customer_id, c.first_name, c.last_name, SUM(p.amount) AS total_spent
+FROM customers c
+JOIN payments p ON c.customer_id = p.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+HAVING total_spent > (
+    SELECT AVG(customer_total) FROM (
+        SELECT SUM(amount) AS customer_total
+        FROM payments
+        GROUP BY customer_id
+    ) AS subquery
+)",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.payments' doesn't exist,
+L4-05,4,gpt-4.1-mini-zeroshot,True,False,SELECT product_name FROM products WHERE product_id NOT IN (SELECT DISTINCT product_id FROM orders);,,
+L4-07,4,gpt-4.1-mini-zeroshot,False,False,"SELECT first_name, last_name, total_spent, RANK() OVER (ORDER BY total_spent DESC) AS spend_rank
+FROM (
+    SELECT c.first_name, c.last_name, SUM(p.amount) AS total_spent
+    FROM customers c
+    JOIN payments p ON c.customer_id = p.customer_id
+    GROUP BY c.customer_id, c.first_name, c.last_name
+) sub;",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.payments' doesn't exist,
+L4-08,4,gpt-4.1-mini-zeroshot,False,False,"SELECT order_id, order_value FROM orders WHERE order_value > (SELECT AVG(order_value) FROM orders);",EXEC_FAIL: 1054 (42S22): Unknown column 'order_value' in 'field list',
+L4-09,4,gpt-4.1-mini-zeroshot,False,False,"SELECT c.first_name, c.last_name
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+JOIN stocks s ON p.product_id = s.product_id
+JOIN warehouses w ON s.warehouse_id = w.warehouse_id
+WHERE p.product_name LIKE '%laptop%'
+  AND w.city = 'Berlin';",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.stocks' doesn't exist,
+L3-06,3,claude-haiku-4.5,True,False,"SELECT c.first_name, c.last_name, COUNT(o.order_id) AS order_count FROM customers c LEFT JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY c.customer_id;",,
+L3-07,3,claude-haiku-4.5,True,False,"SELECT e.first_name, e.last_name, COUNT(o.order_id) AS orders_handled FROM employees e LEFT JOIN orders o ON e.employee_id = o.handled_by GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY e.employee_id;",,
+L3-09,3,claude-haiku-4.5,True,False,"SELECT c.category_name, AVG(p.price) AS avg_price FROM categories c LEFT JOIN products p ON c.category_id = p.category_id GROUP BY c.category_id, c.category_name ORDER BY c.category_name;",,
+L4-01,4,claude-haiku-4.5,True,False,"SELECT e.first_name, e.last_name, SUM(oi.quantity * oi.unit_price) as smartphone_sales FROM employees e JOIN orders o ON e.employee_id = o.handled_by JOIN order_items oi ON o.order_id = oi.order_id JOIN products p ON oi.product_id = p.product_id JOIN categories c ON p.category_id = c.category_id WHERE c.category_name = 'Smartphones' GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY smartphone_sales DESC LIMIT 1;",,
+L4-07,4,claude-haiku-4.5,True,False,"SELECT 
+    c.first_name,
+    c.last_name,
+    SUM(oi.quantity * oi.unit_price) AS total_spent,
+    RANK() OVER (ORDER BY SUM(oi.quantity * oi.unit_price) DESC) AS spend_rank
+FROM customers c
+LEFT JOIN orders o ON c.customer_id = o.customer_id
+LEFT JOIN order_items oi ON o.order_id = oi.order_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+ORDER BY spend_rank;",,
+L2-04,2,claude-haiku-4.5-zeroshot,False,False,"SELECT o.order_id, o.order_date, o.status FROM orders o JOIN employees e ON o.employee_id = e.employee_id WHERE e.first_name = 'Julia' AND e.last_name = 'Becker';",EXEC_FAIL: 1054 (42S22): Unknown column 'o.employee_id' in 'on clause',
+L2-05,2,claude-haiku-4.5-zeroshot,False,False,"SELECT product_id, quantity FROM inventory WHERE warehouse_name = 'Munich Regional Warehouse';",EXEC_FAIL: 1054 (42S22): Unknown column 'warehouse_name' in 'where clause',
+L2-06,2,claude-haiku-4.5-zeroshot,False,False,"SELECT product_name, quantity FROM products WHERE quantity > 2;",EXEC_FAIL: 1054 (42S22): Unknown column 'quantity' in 'field list',
+L2-07,2,claude-haiku-4.5-zeroshot,False,False,"SELECT product_name, quantity FROM products WHERE quantity < 30;",EXEC_FAIL: 1054 (42S22): Unknown column 'quantity' in 'field list',
+L2-09,2,claude-haiku-4.5-zeroshot,False,False,"SELECT li.order_id, li.product_id, li.quantity, li.unit_price FROM line_items li JOIN orders o ON li.order_id = o.order_id WHERE o.status = 'cancelled'",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.line_items' doesn't exist,
+L2-13,2,claude-haiku-4.5-zeroshot,False,False,"SELECT product_id, quantity FROM inventory WHERE fulfillment_center = 'Hamburg Fulfillment Center' AND quantity > 100;",EXEC_FAIL: 1054 (42S22): Unknown column 'fulfillment_center' in 'where clause',
+L2-14,2,claude-haiku-4.5-zeroshot,False,False,"SELECT product_name, unit_price FROM order_details JOIN products ON order_details.product_id = products.product_id WHERE order_details.unit_price > 500;",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.order_details' doesn't exist,
+L3-02,3,claude-haiku-4.5-zeroshot,False,False,"SELECT p.product_name, SUM(od.quantity) AS total_sold FROM products p JOIN order_details od ON p.product_id = od.product_id GROUP BY p.product_id, p.product_name ORDER BY total_sold DESC LIMIT 5;",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.order_details' doesn't exist,
+L3-04,3,claude-haiku-4.5-zeroshot,False,False,SELECT COUNT(DISTINCT customer_id) AS laptop_customers FROM orders WHERE product_type = 'laptop' OR product_id IN (SELECT product_id FROM products WHERE category = 'laptop');,EXEC_FAIL: 1054 (42S22): Unknown column 'product_type' in 'where clause',
+L3-05,3,claude-haiku-4.5-zeroshot,False,False,"SELECT p.category_name, SUM(oi.quantity * oi.unit_price) AS revenue FROM order_items oi JOIN products p ON oi.product_id = p.product_id GROUP BY p.category_name;",EXEC_FAIL: 1054 (42S22): Unknown column 'p.category_name' in 'field list',
+L3-06,3,claude-haiku-4.5-zeroshot,True,False,"SELECT c.first_name, c.last_name, COUNT(o.order_id) AS order_count FROM customers c LEFT JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY c.first_name, c.last_name;",,
+L3-07,3,claude-haiku-4.5-zeroshot,False,False,"SELECT e.first_name, e.last_name, COUNT(o.order_id) AS orders_handled FROM employees e LEFT JOIN orders o ON e.employee_id = o.employee_id GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY e.employee_id;",EXEC_FAIL: 1054 (42S22): Unknown column 'o.employee_id' in 'on clause',
+L3-14,3,claude-haiku-4.5-zeroshot,False,False,"SELECT p.product_name, SUM(s.quantity) as total_units FROM products p JOIN stock s ON p.product_id = s.product_id GROUP BY p.product_id, p.product_name ORDER BY total_units DESC LIMIT 5;",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.stock' doesn't exist,
+L4-01,4,claude-haiku-4.5-zeroshot,False,False,"SELECT e.first_name, e.last_name, SUM(s.quantity * p.price) AS smartphone_sales FROM employees e JOIN sales s ON e.employee_id = s.employee_id JOIN products p ON s.product_id = p.product_id WHERE p.category = 'Smartphones' GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY smartphone_sales DESC LIMIT 1;",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.sales' doesn't exist,
+L4-02,4,claude-haiku-4.5-zeroshot,False,False,"SELECT c.customer_id, c.first_name, c.last_name, SUM(o.total_amount) as total_spent FROM customers c JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.first_name, c.last_name HAVING SUM(o.total_amount) > (SELECT AVG(customer_total) FROM (SELECT SUM(o2.total_amount) as customer_total FROM orders o2 GROUP BY o2.customer_id) as avg_table) ORDER BY total_spent DESC;",EXEC_FAIL: 1054 (42S22): Unknown column 'o.total_amount' in 'field list',
+L4-07,4,claude-haiku-4.5-zeroshot,False,False,"SELECT c.first_name, c.last_name, SUM(o.total_amount) as total_spent, RANK() OVER (ORDER BY SUM(o.total_amount) DESC) as spend_rank FROM customers c LEFT JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY spend_rank;",EXEC_FAIL: 1054 (42S22): Unknown column 'o.total_amount' in 'field list',
+L4-08,4,claude-haiku-4.5-zeroshot,False,False,"SELECT order_id, order_value FROM orders WHERE order_value > (SELECT AVG(order_value) FROM orders)",EXEC_FAIL: 1054 (42S22): Unknown column 'order_value' in 'field list',
+L4-09,4,claude-haiku-4.5-zeroshot,True,False,"SELECT DISTINCT c.first_name, c.last_name
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+JOIN inventory i ON p.product_id = i.product_id
+JOIN warehouses w ON i.warehouse_id = w.warehouse_id
+WHERE p.product_name LIKE '%laptop%'
+AND w.warehouse_name = 'Berlin'",,
+L4-10,4,claude-haiku-4.5-zeroshot,False,False,"SELECT c.first_name, c.last_name, p.product_name, od.quantity, od.unit_price, (od.quantity * od.unit_price) AS line_total FROM customers c JOIN orders o ON c.customer_id = o.customer_id JOIN order_details od ON o.order_id = od.order_id JOIN products p ON od.product_id = p.product_id WHERE c.customer_id = (SELECT c2.customer_id FROM customers c2 JOIN orders o2 ON c2.customer_id = o2.customer_id JOIN order_details od2 ON o2.order_id = od2.order_id GROUP BY c2.customer_id ORDER BY SUM(od2.quantity * od2.unit_price) DESC LIMIT 1) ORDER BY line_total DESC;",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.order_details' doesn't exist,
+L3-04,3,gemini-3.5-flash-lite,True,False,"SELECT COUNT(DISTINCT o.customer_id) AS laptop_customers
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+WHERE p.product_name LIKE '%laptop%'",,
+L3-05,3,gemini-3.5-flash-lite,True,False,"SELECT 
+    c.category_name, 
+    COALESCE(SUM(oi.quantity * oi.unit_price), 0) AS revenue
+FROM 
+    categories c
+LEFT JOIN 
+    products p ON c.category_id = p.category_id
+LEFT JOIN 
+    order_items oi ON p.product_id = oi.product_id
+GROUP BY 
+    c.category_id, 
+    c.category_name",,
+L3-06,3,gemini-3.5-flash-lite,True,False,"SELECT c.first_name, c.last_name, COUNT(o.order_id) AS order_count
+FROM customers c
+LEFT JOIN orders o ON c.customer_id = o.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name;",,
+L3-07,3,gemini-3.5-flash-lite,True,False,"SELECT e.first_name, e.last_name, COUNT(o.order_id) AS orders_handled
+FROM employees e
+LEFT JOIN orders o ON e.employee_id = o.handled_by
+GROUP BY e.employee_id, e.first_name, e.last_name",,
+L3-09,3,gemini-3.5-flash-lite,True,False,"SELECT c.category_name, AVG(p.price) AS avg_price
+FROM categories c
+LEFT JOIN products p ON c.category_id = p.category_id
+GROUP BY c.category_id, c.category_name;",,
+L3-12,3,gemini-3.5-flash-lite,True,False,"SELECT 
+    c.category_name, 
+    SUM(oi.quantity * oi.unit_price) AS revenue
+FROM 
+    categories c
+JOIN 
+    products p ON c.category_id = p.category_id
+JOIN 
+    order_items oi ON p.product_id = oi.product_id
+JOIN 
+    orders o ON oi.order_id = o.order_id
+WHERE 
+    o.status != 'Cancelled'
+GROUP BY 
+    c.category_id, 
+    c.category_name
+HAVING 
+    SUM(oi.quantity * oi.unit_price) > 5000;",,
+L4-01,4,gemini-3.5-flash-lite,True,False,"SELECT e.first_name, e.last_name, SUM(oi.quantity * oi.unit_price) AS smartphone_sales
+FROM employees e
+JOIN orders o ON e.employee_id = o.handled_by
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+JOIN categories c ON p.category_id = c.category_id
+WHERE c.category_name = 'Smartphones'
+GROUP BY e.employee_id, e.first_name, e.last_name
+ORDER BY smartphone_sales DESC
+LIMIT 1;",,
+L4-04,4,gemini-3.5-flash-lite,True,False,"SELECT product_name, price, DENSE_RANK() OVER (ORDER BY price DESC) AS price_rank FROM products;",,
+L4-07,4,gemini-3.5-flash-lite,True,False,"SELECT c.first_name, c.last_name, COALESCE(SUM(oi.quantity * oi.unit_price), 0) AS total_spent, DENSE_RANK() OVER (ORDER BY COALESCE(SUM(oi.quantity * oi.unit_price), 0) DESC) AS spend_rank FROM customers c LEFT JOIN orders o ON c.customer_id = o.customer_id LEFT JOIN order_items oi ON o.order_id = oi.order_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY total_spent DESC, c.last_name, c.first_name",,
+L4-09,4,gemini-3.5-flash-lite,True,False,"SELECT DISTINCT c.first_name, c.last_name
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+JOIN inventory i ON p.product_id = i.product_id
+JOIN warehouses w ON i.warehouse_id = w.warehouse_id
+WHERE p.product_name LIKE '%laptop%'
+  AND w.warehouse_name = 'Berlin';",,
+L2-01,2,gemini-3.5-flash-lite-zeroshot,False,False,"SELECT p.product_name, c.category_name FROM products p JOIN categories c ON p.category_id = c.id WHERE c.category_name = 'Laptops';",EXEC_FAIL: 1054 (42S22): Unknown column 'c.id' in 'on clause',
+L2-04,2,gemini-3.5-flash-lite-zeroshot,False,False,"SELECT o.order_id, o.order_date, o.status 
+FROM orders o 
+JOIN employees e ON o.employee_id = e.employee_id 
+WHERE e.first_name = 'Julia' AND e.last_name = 'Becker'",EXEC_FAIL: 1054 (42S22): Unknown column 'o.employee_id' in 'on clause',
+L2-05,2,gemini-3.5-flash-lite-zeroshot,False,False,"SELECT i.product_id, i.quantity
+FROM inventories i
+JOIN warehouses w ON i.warehouse_id = w.warehouse_id
+WHERE w.warehouse_name = 'Munich Regional Warehouse';",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.inventories' doesn't exist,
+L2-06,2,gemini-3.5-flash-lite-zeroshot,False,False,"SELECT product_name, quantity FROM products WHERE quantity > 2;",EXEC_FAIL: 1054 (42S22): Unknown column 'quantity' in 'field list',
+L2-07,2,gemini-3.5-flash-lite-zeroshot,False,False,"SELECT p.product_name, s.quantity 
+FROM products p 
+JOIN stock s ON p.product_id = s.product_id 
+WHERE s.quantity < 30",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.stock' doesn't exist,
+L2-09,2,gemini-3.5-flash-lite-zeroshot,False,False,"SELECT li.order_id, li.product_id, li.quantity, li.unit_price FROM line_items li JOIN orders o ON li.order_id = o.order_id WHERE o.status = 'cancelled'",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.line_items' doesn't exist,
+L2-10,2,gemini-3.5-flash-lite-zeroshot,False,False,"SELECT p.product_name, c.category_name 
+FROM products p 
+JOIN categories c ON p.category_id = c.id 
+WHERE c.category_name = 'Audio';",EXEC_FAIL: 1054 (42S22): Unknown column 'c.id' in 'on clause',
+L2-13,2,gemini-3.5-flash-lite-zeroshot,False,False,"SELECT product_id, quantity 
+FROM inventory 
+WHERE fulfillment_center = 'Hamburg' 
+  AND quantity > 100;",EXEC_FAIL: 1054 (42S22): Unknown column 'fulfillment_center' in 'where clause',
+L2-14,2,gemini-3.5-flash-lite-zeroshot,False,False,"SELECT DISTINCT p.product_name, o.unit_price FROM products p JOIN order_details o ON p.product_id = o.product_id WHERE o.unit_price > 500",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.order_details' doesn't exist,
+L3-04,3,gemini-3.5-flash-lite-zeroshot,False,False,"SELECT COUNT(DISTINCT c.customer_id) AS laptop_customers
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+WHERE p.category = 'Laptops'",EXEC_FAIL: 1054 (42S22): Unknown column 'p.category' in 'where clause',
+L3-06,3,gemini-3.5-flash-lite-zeroshot,False,False,"SELECT c.first_name, c.last_name, COUNT(o.id) AS order_count FROM customers c LEFT JOIN orders o ON c.id = o.customer_id GROUP BY c.id, c.first_name, c.last_name",EXEC_FAIL: 1054 (42S22): Unknown column 'o.id' in 'field list',
+L3-07,3,gemini-3.5-flash-lite-zeroshot,False,False,"SELECT e.first_name, e.last_name, COUNT(o.order_id) AS orders_handled
+FROM employees e
+LEFT JOIN orders o ON e.employee_id = o.employee_id
+GROUP BY e.employee_id, e.first_name, e.last_name",EXEC_FAIL: 1054 (42S22): Unknown column 'o.employee_id' in 'on clause',
+L3-11,3,gemini-3.5-flash-lite-zeroshot,False,False,"SELECT c.first_name, c.last_name, COUNT(o.id) AS order_count
+FROM customers c
+JOIN orders o ON c.id = o.customer_id
+GROUP BY c.id, c.first_name, c.last_name
+HAVING COUNT(o.id) > 3;",EXEC_FAIL: 1054 (42S22): Unknown column 'o.id' in 'field list',
+L3-12,3,gemini-3.5-flash-lite-zeroshot,False,False,"SELECT c.name AS category_name, SUM(p.price * s.quantity) AS revenue
+FROM categories c
+JOIN products p ON c.id = p.category_id
+JOIN sales s ON p.id = s.product_id
+GROUP BY c.id, c.name
+HAVING SUM(p.price * s.quantity) > 5000;",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.sales' doesn't exist,
+L3-14,3,gemini-3.5-flash-lite-zeroshot,False,False,"SELECT product_name, units_in_stock AS total_units FROM products ORDER BY units_in_stock DESC LIMIT 5",EXEC_FAIL: 1054 (42S22): Unknown column 'units_in_stock' in 'field list',
+L4-01,4,gemini-3.5-flash-lite-zeroshot,False,False,"SELECT e.first_name, e.last_name, SUM(s.quantity * s.unit_price) AS smartphone_sales
+FROM employees e
+JOIN sales s ON e.employee_id = s.employee_id
+JOIN products p ON s.product_id = p.product_id
+WHERE p.category = 'Smartphone'
+GROUP BY e.employee_id, e.first_name, e.last_name
+ORDER BY smartphone_sales DESC
+LIMIT 1;",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.sales' doesn't exist,
+L4-02,4,gemini-3.5-flash-lite-zeroshot,False,False,"SELECT 
+    c.customer_id, 
+    c.first_name, 
+    c.last_name, 
+    SUM(p.amount) AS total_spent
+FROM 
+    customer c
+JOIN 
+    payment p ON c.customer_id = p.customer_id
+GROUP BY 
+    c.customer_id, 
+    c.first_name, 
+    c.last_name
+HAVING 
+    SUM(p.amount) > (
+        SELECT AVG(customer_total)
+        FROM (
+            SELECT SUM(amount) AS customer_total
+            FROM payment
+            GROUP BY customer_id
+        ) AS avg_spent
+    )",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.customer' doesn't exist,
+L4-04,4,gemini-3.5-flash-lite-zeroshot,True,False,"SELECT product_name, price, DENSE_RANK() OVER (ORDER BY price DESC) as price_rank FROM products",,
+L4-06,4,gemini-3.5-flash-lite-zeroshot,False,False,"SELECT p.product_name, p.price, c.category_name
+FROM products p
+JOIN categories c ON p.category_id = c.id
+JOIN (
+    SELECT category_id, MAX(price) AS max_price
+    FROM products
+    GROUP BY category_id
+) m ON p.category_id = m.category_id AND p.price = m.max_price",EXEC_FAIL: 1054 (42S22): Unknown column 'c.id' in 'on clause',
+L4-07,4,gemini-3.5-flash-lite-zeroshot,False,False,"SELECT 
+    c.first_name, 
+    c.last_name, 
+    SUM(o.total_amount) AS total_spent,
+    RANK() OVER (ORDER BY SUM(o.total_amount) DESC) AS spend_rank
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name;",EXEC_FAIL: 1054 (42S22): Unknown column 'o.total_amount' in 'field list',
+L4-08,4,gemini-3.5-flash-lite-zeroshot,False,False,"SELECT order_id, order_value FROM orders WHERE order_value > (SELECT AVG(order_value) FROM orders)",EXEC_FAIL: 1054 (42S22): Unknown column 'order_value' in 'field list',
+L4-09,4,gemini-3.5-flash-lite-zeroshot,True,False,"SELECT DISTINCT c.first_name, c.last_name
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+JOIN inventory i ON p.product_id = i.product_id
+JOIN warehouses w ON i.warehouse_id = w.warehouse_id
+WHERE p.product_name LIKE '%laptop%' AND w.city = 'Berlin';",,
