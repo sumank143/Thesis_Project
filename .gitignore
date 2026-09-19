@@ -10,5 +10,3 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
-# Claude outputs
-Claude outputs/
