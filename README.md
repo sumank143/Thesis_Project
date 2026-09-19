@@ -94,6 +94,10 @@ loaded) must be running on `localhost`.
    - `tally_failures.py` → tallies corrected/suggested categories by
      model, condition, and level into `rq2_failure_summary.csv`
 
+   `failures_reviewed_final.csv` is the manually reviewed version of the
+   auto-suggested categories, with a `review_note` explaining the
+   corrected category for each failing query.
+
 4. **Measure consistency (RQ3)** — `measure_consistency.py` re-runs a
    representative subset of 10 questions 5x per model and records whether
    the result set is identical across all repeats
@@ -119,8 +123,6 @@ python generate_charts.py
 ```
 
 `list_models.py` is a small utility to list available Gemini models.
-`test_*.py` are exploratory scripts used during development to sanity-check
-model calls, SQL execution, and scoring logic against a single query.
 
 ## Results snapshot
 
@@ -161,6 +163,43 @@ See [accuracy_summary.csv](accuracy_summary.csv),
 [rq2_failure_summary.csv](rq2_failure_summary.csv), the `consistency_*.csv`
 / `efficiency_*.csv` files, and [charts/](charts/) for the full breakdown.
 
+## Extended prompting-condition study
+
+[extended_conditions/](extended_conditions/) is a follow-up study (GPT-4.1-mini
+and Gemini 3.5 Flash-Lite only) that breaks the schema-aware/zero-shot split
+above into four finer-grained prompting conditions, to isolate exactly which
+ingredient of "engineered" prompting drives the RQ4 accuracy gain:
+
+| Condition | Prompt | Test set |
+|-----------|--------|----------|
+| 1 — unaware   | Question only, no schema                          | Full 50-query benchmark |
+| 2 — aware, no hints | Schema + question, no examples              | Full 50-query benchmark |
+| 3 — few-shot  | Schema + all 50 benchmark Q/SQL pairs as examples  | 20 new, harder L3/L4 queries ([new_queries_l3_l4.json](extended_conditions/new_queries_l3_l4.json)) |
+| 4 — precise wording | Same as condition 3, but the 20 new questions are reworded to remove ambiguity ([new_queries_l3_l4_precise.json](extended_conditions/new_queries_l3_l4_precise.json)) | Same 20 queries, precisely worded |
+
+Conditions 3→4 test whether failures on harder queries are a reasoning
+limitation or a question-ambiguity artifact: `final_summary.csv` shows
+accuracy jumping from 20% (both models, condition 3) to 70% (GPT-4.1-mini)
+and 60% (Gemini 3.5 Flash-Lite) once the same questions are reworded
+precisely (condition 4), with the per-query before/after flips recorded in
+its `condition3_to_condition4_delta` section.
+
+Run with:
+
+```bash
+python extended_conditions/run_condition1_unaware.py
+python extended_conditions/run_condition2_aware_no_hints.py
+python extended_conditions/run_condition3_fewshot.py
+python extended_conditions/run_condition4_precise_wording.py
+python extended_conditions/analyze_extended_results.py
+python extended_conditions/analyze_and_chart.py
+```
+
+Outputs stay self-contained inside the folder: `results_condition*_<model>.csv`
+(raw per-query results), `extended_summary.csv` / `final_summary.csv`
+(aggregated accuracy, by-level breakdown, and the condition 3→4 delta), and
+[extended_conditions/charts/](extended_conditions/charts/).
+
 ## Repository layout
 
 ```
@@ -179,8 +218,10 @@ results_*.csv                Raw per-query results per model/condition
 accuracy_by_level.csv        Aggregated accuracy by complexity level (RQ1)
 accuracy_summary.csv         Aggregated overall accuracy by condition (RQ4)
 failures_*.csv, rq2_*.csv    Failure classification (RQ2)
+failures_reviewed_final.csv  Manually reviewed failure categories with review notes
 consistency_*.csv            Consistency results (RQ3)
 efficiency_*.csv             Efficiency results (RQ3)
 charts/                      Generated PNG charts for the Results chapter
-list_models.py, test_*.py    Utility / exploratory scripts
+list_models.py               Utility to list available Gemini models
+extended_conditions/         Follow-up study: 4 finer-grained prompting conditions (GPT + Gemini)
 ```
