@@ -1,0 +1,311 @@
+id,level,model,ran_ok,correct,model_rows,truth_rows,question,ground_truth_sql,model_sql,error,suggested_category,category,review_note
+L2-06,2,gpt-4.1-mini,True,False,39,24,Which product lines had a quantity greater than 2?,"SELECT p.product_name, oi.quantity FROM order_items oi JOIN products p ON oi.product_id = p.product_id WHERE oi.quantity > 2;","SELECT p.product_name, i.quantity FROM products p JOIN inventory i ON p.product_id = i.product_id WHERE i.quantity > 2;",,wrong_join_path,wrong_join_path,Model joins products to inventory (warehouse stock) instead of order_items (order quantity) -- wrong table entirely.
+L3-06,3,gpt-4.1-mini,True,False,18,14,How many orders has each customer placed?,"SELECT c.first_name, c.last_name, COUNT(o.order_id) AS order_count FROM customers c JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY order_count DESC;","SELECT c.first_name, c.last_name, COUNT(o.order_id) AS order_count
+FROM customers c
+LEFT JOIN orders o ON c.customer_id = o.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name;",,wrong_join_path,wrong_join_path,"LEFT JOIN used instead of INNER JOIN -- includes customers with zero orders that the ground truth (INNER JOIN) correctly excludes. Join TYPE error, not join-column error."
+L3-07,3,gpt-4.1-mini,True,False,6,3,How many orders has each employee handled?,"SELECT e.first_name, e.last_name, COUNT(o.order_id) AS orders_handled FROM employees e JOIN orders o ON o.handled_by = e.employee_id GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY orders_handled DESC;","SELECT e.first_name, e.last_name, COUNT(o.order_id) AS orders_handled
+FROM employees e
+LEFT JOIN orders o ON e.employee_id = o.handled_by
+GROUP BY e.employee_id, e.first_name, e.last_name;",,wrong_join_path,wrong_join_path,Same LEFT-vs-INNER-JOIN pattern as L3-06: includes employees who have handled zero orders.
+L4-01,4,gpt-4.1-mini,True,False,1,3,Which employee handled the highest total sales value of Smartphones?,"SELECT e.first_name, e.last_name, SUM(oi.quantity * oi.unit_price) AS smartphone_sales FROM employees e JOIN orders o ON e.employee_id = o.handled_by JOIN order_items oi ON o.order_id = oi.order_id JOIN products p ON oi.product_id = p.product_id JOIN categories c ON p.category_id = c.category_id WHERE c.category_name = 'Smartphones' GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY smartphone_sales DESC;","SELECT e.first_name, e.last_name, SUM(oi.quantity * oi.unit_price) AS smartphone_sales
+FROM employees e
+JOIN orders o ON e.employee_id = o.handled_by
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+JOIN categories c ON p.category_id = c.category_id
+WHERE c.category_name = 'Smartphones'
+GROUP BY e.employee_id, e.first_name, e.last_name
+ORDER BY smartphone_sales DESC
+LIMIT 1;",,wrong_filter,column_shape_mismatch,"Model adds LIMIT 1 to return only the top employee; ground truth returns all 3 rows (tied/ranked). Join and aggregation logic are identical to ground truth -- this is an output-shape choice, not a reasoning error."
+L4-07,4,gpt-4.1-mini,True,False,18,14,Rank customers by total spend.,"SELECT c.first_name, c.last_name, SUM(oi.quantity * oi.unit_price) AS total_spent, RANK() OVER (ORDER BY SUM(oi.quantity * oi.unit_price) DESC) AS spend_rank FROM customers c JOIN orders o ON c.customer_id = o.customer_id JOIN order_items oi ON o.order_id = oi.order_id GROUP BY c.customer_id, c.first_name, c.last_name;","SELECT c.first_name, c.last_name, 
+       IFNULL(SUM(oi.quantity * oi.unit_price), 0) AS total_spent,
+       RANK() OVER (ORDER BY IFNULL(SUM(oi.quantity * oi.unit_price), 0) DESC) AS spend_rank
+FROM customers c
+LEFT JOIN orders o ON c.customer_id = o.customer_id
+LEFT JOIN order_items oi ON o.order_id = oi.order_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+ORDER BY spend_rank;",,wrong_join_path,wrong_join_path,LEFT JOIN used instead of INNER JOIN -- includes customers with zero spend that the ground truth excludes. Same join-type pattern as L3-06/L3-07.
+L2-04,2,gpt-4.1-mini-zeroshot,False,False,0,12,Which orders were handled by Julia Becker?,"SELECT o.order_id, o.order_date, o.status FROM orders o JOIN employees e ON o.handled_by = e.employee_id WHERE e.first_name = 'Julia' AND e.last_name = 'Becker';","SELECT o.order_id, o.order_date, o.status
+FROM orders o
+JOIN employees e ON o.employee_id = e.employee_id
+WHERE e.first_name = 'Julia' AND e.last_name = 'Becker';",EXEC_FAIL: 1054 (42S22): Unknown column 'o.employee_id' in 'on clause',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L2-05,2,gpt-4.1-mini-zeroshot,False,False,0,15,What stock quantities are held in the Munich Regional Warehouse?,"SELECT i.product_id, i.quantity FROM inventory i JOIN warehouses w ON i.warehouse_id = w.warehouse_id WHERE w.warehouse_name = 'Munich Regional Warehouse';","SELECT product_id, quantity FROM warehouse_stock WHERE warehouse_location = 'Munich Regional Warehouse';",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.warehouse_stock' doesn't exist,hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L2-06,2,gpt-4.1-mini-zeroshot,False,False,0,24,Which product lines had a quantity greater than 2?,"SELECT p.product_name, oi.quantity FROM order_items oi JOIN products p ON oi.product_id = p.product_id WHERE oi.quantity > 2;","SELECT product_name, quantity FROM products WHERE quantity > 2;",EXEC_FAIL: 1054 (42S22): Unknown column 'quantity' in 'field list',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L2-07,2,gpt-4.1-mini-zeroshot,False,False,0,3,Which products have a stock record below 30 units?,"SELECT p.product_name, i.quantity FROM inventory i JOIN products p ON i.product_id = p.product_id WHERE i.quantity < 30;","SELECT product_name, quantity FROM products WHERE quantity < 30;",EXEC_FAIL: 1054 (42S22): Unknown column 'quantity' in 'field list',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L2-09,2,gpt-4.1-mini-zeroshot,False,False,0,8,What are the line items for all cancelled orders?,"SELECT o.order_id, oi.product_id, oi.quantity, oi.unit_price FROM order_items oi JOIN orders o ON oi.order_id = o.order_id WHERE o.status = 'cancelled';","SELECT li.order_id, li.product_id, li.quantity, li.unit_price
+FROM line_items li
+JOIN orders o ON li.order_id = o.order_id
+WHERE o.status = 'cancelled';",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.line_items' doesn't exist,hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L2-13,2,gpt-4.1-mini-zeroshot,False,False,0,6,Which inventory records in the Hamburg Fulfillment Center hold more than 100 units?,"SELECT i.product_id, i.quantity FROM inventory i JOIN warehouses w ON i.warehouse_id = w.warehouse_id WHERE w.warehouse_name = 'Hamburg Fulfillment Center' AND i.quantity > 100;","SELECT product_id, quantity FROM inventory WHERE warehouse = 'Hamburg Fulfillment Center' AND quantity > 100;",EXEC_FAIL: 1054 (42S22): Unknown column 'warehouse' in 'where clause',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L2-14,2,gpt-4.1-mini-zeroshot,False,False,0,6,Which products were sold at a unit price above 500 euros?,"SELECT DISTINCT p.product_name, oi.unit_price FROM order_items oi JOIN products p ON oi.product_id = p.product_id WHERE oi.unit_price > 500;","SELECT product_name, unit_price FROM products WHERE unit_price > 500;",EXEC_FAIL: 1054 (42S22): Unknown column 'unit_price' in 'field list',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L3-02,3,gpt-4.1-mini-zeroshot,False,False,0,5,What are the top 5 products by total units sold?,"SELECT p.product_name, SUM(oi.quantity) AS total_sold FROM order_items oi JOIN products p ON oi.product_id = p.product_id GROUP BY p.product_name ORDER BY total_sold DESC LIMIT 5;","SELECT product_name, SUM(units_sold) AS total_sold
+FROM sales
+GROUP BY product_name
+ORDER BY total_sold DESC
+LIMIT 5;",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.sales' doesn't exist,hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L3-04,3,gpt-4.1-mini-zeroshot,False,False,0,1,How many distinct customers have ordered laptops?,SELECT COUNT(DISTINCT o.customer_id) AS laptop_customers FROM orders o JOIN order_items oi ON o.order_id = oi.order_id JOIN products p ON oi.product_id = p.product_id JOIN categories c ON p.category_id = c.category_id WHERE c.category_name = 'Laptops';,SELECT COUNT(DISTINCT customer_id) AS laptop_customers FROM orders WHERE product_name LIKE '%laptop%';,EXEC_FAIL: 1054 (42S22): Unknown column 'product_name' in 'where clause',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L3-06,3,gpt-4.1-mini-zeroshot,True,False,18,14,How many orders has each customer placed?,"SELECT c.first_name, c.last_name, COUNT(o.order_id) AS order_count FROM customers c JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY order_count DESC;","SELECT c.first_name, c.last_name, COUNT(o.order_id) AS order_count
+FROM customers c
+LEFT JOIN orders o ON c.customer_id = o.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name;",,wrong_join_path,wrong_join_path,Same LEFT-vs-INNER-JOIN pattern.
+L3-07,3,gpt-4.1-mini-zeroshot,False,False,0,3,How many orders has each employee handled?,"SELECT e.first_name, e.last_name, COUNT(o.order_id) AS orders_handled FROM employees e JOIN orders o ON o.handled_by = e.employee_id GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY orders_handled DESC;","SELECT e.first_name, e.last_name, COUNT(o.order_id) AS orders_handled
+FROM employees e
+LEFT JOIN orders o ON e.employee_id = o.employee_id
+GROUP BY e.employee_id, e.first_name, e.last_name;",EXEC_FAIL: 1054 (42S22): Unknown column 'o.employee_id' in 'on clause',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L3-08,3,gpt-4.1-mini-zeroshot,False,False,0,3,What is the total stock held in each warehouse?,"SELECT w.warehouse_name, SUM(i.quantity) AS total_stock FROM warehouses w JOIN inventory i ON w.warehouse_id = i.warehouse_id GROUP BY w.warehouse_name ORDER BY total_stock DESC;","SELECT warehouse_name, SUM(stock) AS total_stock FROM warehouse_stock GROUP BY warehouse_name;",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.warehouse_stock' doesn't exist,hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L3-09,3,gpt-4.1-mini-zeroshot,False,False,0,8,What is the average product price per category?,"SELECT c.category_name, AVG(p.price) AS avg_price FROM products p JOIN categories c ON p.category_id = c.category_id GROUP BY c.category_name ORDER BY avg_price DESC;","SELECT category_name, AVG(price) AS avg_price FROM products GROUP BY category_name;",EXEC_FAIL: 1054 (42S22): Unknown column 'category_name' in 'field list',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L3-14,3,gpt-4.1-mini-zeroshot,False,False,0,5,What are the top 5 products by total units in stock?,"SELECT p.product_name, SUM(i.quantity) AS total_units FROM products p JOIN inventory i ON p.product_id = i.product_id GROUP BY p.product_id, p.product_name ORDER BY total_units DESC LIMIT 5;","SELECT product_name, units_in_stock AS total_units FROM products ORDER BY units_in_stock DESC LIMIT 5;",EXEC_FAIL: 1054 (42S22): Unknown column 'units_in_stock' in 'field list',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L3-15,3,gpt-4.1-mini-zeroshot,False,False,0,8,What is the average sold unit price per category?,"SELECT c.category_name, AVG(oi.unit_price) AS avg_sold_price FROM order_items oi JOIN products p ON oi.product_id = p.product_id JOIN categories c ON p.category_id = c.category_id GROUP BY c.category_name ORDER BY avg_sold_price DESC;","SELECT c.category_name, AVG(p.sold_unit_price) AS avg_sold_price
+FROM products p
+JOIN categories c ON p.category_id = c.category_id
+GROUP BY c.category_name;",EXEC_FAIL: 1054 (42S22): Unknown column 'p.sold_unit_price' in 'field list',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L4-01,4,gpt-4.1-mini-zeroshot,False,False,0,3,Which employee handled the highest total sales value of Smartphones?,"SELECT e.first_name, e.last_name, SUM(oi.quantity * oi.unit_price) AS smartphone_sales FROM employees e JOIN orders o ON e.employee_id = o.handled_by JOIN order_items oi ON o.order_id = oi.order_id JOIN products p ON oi.product_id = p.product_id JOIN categories c ON p.category_id = c.category_id WHERE c.category_name = 'Smartphones' GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY smartphone_sales DESC;","SELECT e.first_name, e.last_name, SUM(s.sale_value) AS smartphone_sales
+FROM employees e
+JOIN sales s ON e.employee_id = s.employee_id
+JOIN products p ON s.product_id = p.product_id
+WHERE p.category = 'Smartphones'
+GROUP BY e.employee_id, e.first_name, e.last_name
+ORDER BY smartphone_sales DESC
+LIMIT 1;",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.sales' doesn't exist,hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L4-02,4,gpt-4.1-mini-zeroshot,False,False,0,6,Which customers have spent more than the average customer?,"SELECT c.customer_id, c.first_name, c.last_name, SUM(oi.quantity * oi.unit_price) AS total_spent FROM customers c JOIN orders o ON c.customer_id = o.customer_id JOIN order_items oi ON o.order_id = oi.order_id GROUP BY c.customer_id, c.first_name, c.last_name HAVING total_spent > (SELECT AVG(cust_total) FROM (SELECT SUM(oi2.quantity * oi2.unit_price) AS cust_total FROM orders o2 JOIN order_items oi2 ON o2.order_id = oi2.order_id GROUP BY o2.customer_id) AS averages);","SELECT c.customer_id, c.first_name, c.last_name, SUM(p.amount) AS total_spent
+FROM customers c
+JOIN payments p ON c.customer_id = p.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+HAVING total_spent > (
+    SELECT AVG(customer_total) FROM (
+        SELECT SUM(amount) AS customer_total
+        FROM payments
+        GROUP BY customer_id
+    ) AS subquery
+)",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.payments' doesn't exist,hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L4-05,4,gpt-4.1-mini-zeroshot,True,False,0,2,Which products have never been ordered?,SELECT product_name FROM products WHERE product_id NOT IN (SELECT DISTINCT product_id FROM order_items);,SELECT product_name FROM products WHERE product_id NOT IN (SELECT DISTINCT product_id FROM orders);,,wrong_join_path,wrong_join_path,"Model subqueries against orders instead of order_items -- wrong table for ""ordered"" quantity."
+L4-07,4,gpt-4.1-mini-zeroshot,False,False,0,14,Rank customers by total spend.,"SELECT c.first_name, c.last_name, SUM(oi.quantity * oi.unit_price) AS total_spent, RANK() OVER (ORDER BY SUM(oi.quantity * oi.unit_price) DESC) AS spend_rank FROM customers c JOIN orders o ON c.customer_id = o.customer_id JOIN order_items oi ON o.order_id = oi.order_id GROUP BY c.customer_id, c.first_name, c.last_name;","SELECT first_name, last_name, total_spent, RANK() OVER (ORDER BY total_spent DESC) AS spend_rank
+FROM (
+    SELECT c.first_name, c.last_name, SUM(p.amount) AS total_spent
+    FROM customers c
+    JOIN payments p ON c.customer_id = p.customer_id
+    GROUP BY c.customer_id, c.first_name, c.last_name
+) sub;",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.payments' doesn't exist,hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L4-08,4,gpt-4.1-mini-zeroshot,False,False,0,16,Which orders have a value greater than the average order value?,"SELECT o.order_id, SUM(oi.quantity * oi.unit_price) AS order_value FROM orders o JOIN order_items oi ON o.order_id = oi.order_id GROUP BY o.order_id HAVING order_value > (SELECT AVG(order_total) FROM (SELECT SUM(oi2.quantity * oi2.unit_price) AS order_total FROM order_items oi2 GROUP BY oi2.order_id) AS order_avgs) ORDER BY order_value DESC;","SELECT order_id, order_value FROM orders WHERE order_value > (SELECT AVG(order_value) FROM orders);",EXEC_FAIL: 1054 (42S22): Unknown column 'order_value' in 'field list',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L4-09,4,gpt-4.1-mini-zeroshot,False,False,0,5,Which customers ordered laptops that are stocked in the Berlin warehouse?,"SELECT DISTINCT c.first_name, c.last_name FROM customers c JOIN orders o ON c.customer_id = o.customer_id JOIN order_items oi ON o.order_id = oi.order_id JOIN products p ON oi.product_id = p.product_id JOIN categories cat ON p.category_id = cat.category_id JOIN inventory i ON p.product_id = i.product_id JOIN warehouses w ON i.warehouse_id = w.warehouse_id WHERE cat.category_name = 'Laptops' AND w.warehouse_name = 'Berlin Distribution Center';","SELECT c.first_name, c.last_name
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+JOIN stocks s ON p.product_id = s.product_id
+JOIN warehouses w ON s.warehouse_id = w.warehouse_id
+WHERE p.product_name LIKE '%laptop%'
+  AND w.city = 'Berlin';",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.stocks' doesn't exist,hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L3-06,3,claude-haiku-4.5,True,False,18,14,How many orders has each customer placed?,"SELECT c.first_name, c.last_name, COUNT(o.order_id) AS order_count FROM customers c JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY order_count DESC;","SELECT c.first_name, c.last_name, COUNT(o.order_id) AS order_count FROM customers c LEFT JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY c.customer_id;",,wrong_join_path,wrong_join_path,Same LEFT-vs-INNER-JOIN pattern.
+L3-07,3,claude-haiku-4.5,True,False,6,3,How many orders has each employee handled?,"SELECT e.first_name, e.last_name, COUNT(o.order_id) AS orders_handled FROM employees e JOIN orders o ON o.handled_by = e.employee_id GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY orders_handled DESC;","SELECT e.first_name, e.last_name, COUNT(o.order_id) AS orders_handled FROM employees e LEFT JOIN orders o ON e.employee_id = o.handled_by GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY e.employee_id;",,wrong_join_path,wrong_join_path,Same LEFT-vs-INNER-JOIN pattern.
+L3-09,3,claude-haiku-4.5,True,False,11,8,What is the average product price per category?,"SELECT c.category_name, AVG(p.price) AS avg_price FROM products p JOIN categories c ON p.category_id = c.category_id GROUP BY c.category_name ORDER BY avg_price DESC;","SELECT c.category_name, AVG(p.price) AS avg_price FROM categories c LEFT JOIN products p ON c.category_id = p.category_id GROUP BY c.category_id, c.category_name ORDER BY c.category_name;",,wrong_join_path,wrong_join_path,"LEFT JOIN categories->products instead of INNER JOIN -- includes categories with zero products, changing the averaged group set."
+L4-01,4,claude-haiku-4.5,True,False,1,3,Which employee handled the highest total sales value of Smartphones?,"SELECT e.first_name, e.last_name, SUM(oi.quantity * oi.unit_price) AS smartphone_sales FROM employees e JOIN orders o ON e.employee_id = o.handled_by JOIN order_items oi ON o.order_id = oi.order_id JOIN products p ON oi.product_id = p.product_id JOIN categories c ON p.category_id = c.category_id WHERE c.category_name = 'Smartphones' GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY smartphone_sales DESC;","SELECT e.first_name, e.last_name, SUM(oi.quantity * oi.unit_price) as smartphone_sales FROM employees e JOIN orders o ON e.employee_id = o.handled_by JOIN order_items oi ON o.order_id = oi.order_id JOIN products p ON oi.product_id = p.product_id JOIN categories c ON p.category_id = c.category_id WHERE c.category_name = 'Smartphones' GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY smartphone_sales DESC LIMIT 1;",,wrong_filter,column_shape_mismatch,"Same LIMIT 1 vs full ranked list as GPT L4-01 -- output-shape choice, not a reasoning error."
+L4-07,4,claude-haiku-4.5,True,False,18,14,Rank customers by total spend.,"SELECT c.first_name, c.last_name, SUM(oi.quantity * oi.unit_price) AS total_spent, RANK() OVER (ORDER BY SUM(oi.quantity * oi.unit_price) DESC) AS spend_rank FROM customers c JOIN orders o ON c.customer_id = o.customer_id JOIN order_items oi ON o.order_id = oi.order_id GROUP BY c.customer_id, c.first_name, c.last_name;","SELECT 
+    c.first_name,
+    c.last_name,
+    SUM(oi.quantity * oi.unit_price) AS total_spent,
+    RANK() OVER (ORDER BY SUM(oi.quantity * oi.unit_price) DESC) AS spend_rank
+FROM customers c
+LEFT JOIN orders o ON c.customer_id = o.customer_id
+LEFT JOIN order_items oi ON o.order_id = oi.order_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+ORDER BY spend_rank;",,wrong_join_path,wrong_join_path,Same LEFT-vs-INNER-JOIN pattern as other L4-07 rows.
+L2-04,2,claude-haiku-4.5-zeroshot,False,False,0,12,Which orders were handled by Julia Becker?,"SELECT o.order_id, o.order_date, o.status FROM orders o JOIN employees e ON o.handled_by = e.employee_id WHERE e.first_name = 'Julia' AND e.last_name = 'Becker';","SELECT o.order_id, o.order_date, o.status FROM orders o JOIN employees e ON o.employee_id = e.employee_id WHERE e.first_name = 'Julia' AND e.last_name = 'Becker';",EXEC_FAIL: 1054 (42S22): Unknown column 'o.employee_id' in 'on clause',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L2-05,2,claude-haiku-4.5-zeroshot,False,False,0,15,What stock quantities are held in the Munich Regional Warehouse?,"SELECT i.product_id, i.quantity FROM inventory i JOIN warehouses w ON i.warehouse_id = w.warehouse_id WHERE w.warehouse_name = 'Munich Regional Warehouse';","SELECT product_id, quantity FROM inventory WHERE warehouse_name = 'Munich Regional Warehouse';",EXEC_FAIL: 1054 (42S22): Unknown column 'warehouse_name' in 'where clause',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L2-06,2,claude-haiku-4.5-zeroshot,False,False,0,24,Which product lines had a quantity greater than 2?,"SELECT p.product_name, oi.quantity FROM order_items oi JOIN products p ON oi.product_id = p.product_id WHERE oi.quantity > 2;","SELECT product_name, quantity FROM products WHERE quantity > 2;",EXEC_FAIL: 1054 (42S22): Unknown column 'quantity' in 'field list',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L2-07,2,claude-haiku-4.5-zeroshot,False,False,0,3,Which products have a stock record below 30 units?,"SELECT p.product_name, i.quantity FROM inventory i JOIN products p ON i.product_id = p.product_id WHERE i.quantity < 30;","SELECT product_name, quantity FROM products WHERE quantity < 30;",EXEC_FAIL: 1054 (42S22): Unknown column 'quantity' in 'field list',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L2-09,2,claude-haiku-4.5-zeroshot,False,False,0,8,What are the line items for all cancelled orders?,"SELECT o.order_id, oi.product_id, oi.quantity, oi.unit_price FROM order_items oi JOIN orders o ON oi.order_id = o.order_id WHERE o.status = 'cancelled';","SELECT li.order_id, li.product_id, li.quantity, li.unit_price FROM line_items li JOIN orders o ON li.order_id = o.order_id WHERE o.status = 'cancelled'",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.line_items' doesn't exist,hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L2-13,2,claude-haiku-4.5-zeroshot,False,False,0,6,Which inventory records in the Hamburg Fulfillment Center hold more than 100 units?,"SELECT i.product_id, i.quantity FROM inventory i JOIN warehouses w ON i.warehouse_id = w.warehouse_id WHERE w.warehouse_name = 'Hamburg Fulfillment Center' AND i.quantity > 100;","SELECT product_id, quantity FROM inventory WHERE fulfillment_center = 'Hamburg Fulfillment Center' AND quantity > 100;",EXEC_FAIL: 1054 (42S22): Unknown column 'fulfillment_center' in 'where clause',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L2-14,2,claude-haiku-4.5-zeroshot,False,False,0,6,Which products were sold at a unit price above 500 euros?,"SELECT DISTINCT p.product_name, oi.unit_price FROM order_items oi JOIN products p ON oi.product_id = p.product_id WHERE oi.unit_price > 500;","SELECT product_name, unit_price FROM order_details JOIN products ON order_details.product_id = products.product_id WHERE order_details.unit_price > 500;",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.order_details' doesn't exist,hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L3-02,3,claude-haiku-4.5-zeroshot,False,False,0,5,What are the top 5 products by total units sold?,"SELECT p.product_name, SUM(oi.quantity) AS total_sold FROM order_items oi JOIN products p ON oi.product_id = p.product_id GROUP BY p.product_name ORDER BY total_sold DESC LIMIT 5;","SELECT p.product_name, SUM(od.quantity) AS total_sold FROM products p JOIN order_details od ON p.product_id = od.product_id GROUP BY p.product_id, p.product_name ORDER BY total_sold DESC LIMIT 5;",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.order_details' doesn't exist,hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L3-04,3,claude-haiku-4.5-zeroshot,False,False,0,1,How many distinct customers have ordered laptops?,SELECT COUNT(DISTINCT o.customer_id) AS laptop_customers FROM orders o JOIN order_items oi ON o.order_id = oi.order_id JOIN products p ON oi.product_id = p.product_id JOIN categories c ON p.category_id = c.category_id WHERE c.category_name = 'Laptops';,SELECT COUNT(DISTINCT customer_id) AS laptop_customers FROM orders WHERE product_type = 'laptop' OR product_id IN (SELECT product_id FROM products WHERE category = 'laptop');,EXEC_FAIL: 1054 (42S22): Unknown column 'product_type' in 'where clause',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L3-05,3,claude-haiku-4.5-zeroshot,False,False,0,8,What is the total revenue per product category?,"SELECT c.category_name, SUM(oi.quantity * oi.unit_price) AS revenue FROM order_items oi JOIN products p ON oi.product_id = p.product_id JOIN categories c ON p.category_id = c.category_id GROUP BY c.category_name ORDER BY revenue DESC;","SELECT p.category_name, SUM(oi.quantity * oi.unit_price) AS revenue FROM order_items oi JOIN products p ON oi.product_id = p.product_id GROUP BY p.category_name;",EXEC_FAIL: 1054 (42S22): Unknown column 'p.category_name' in 'field list',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L3-06,3,claude-haiku-4.5-zeroshot,True,False,18,14,How many orders has each customer placed?,"SELECT c.first_name, c.last_name, COUNT(o.order_id) AS order_count FROM customers c JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY order_count DESC;","SELECT c.first_name, c.last_name, COUNT(o.order_id) AS order_count FROM customers c LEFT JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY c.first_name, c.last_name;",,wrong_join_path,wrong_join_path,Same LEFT-vs-INNER-JOIN pattern.
+L3-07,3,claude-haiku-4.5-zeroshot,False,False,0,3,How many orders has each employee handled?,"SELECT e.first_name, e.last_name, COUNT(o.order_id) AS orders_handled FROM employees e JOIN orders o ON o.handled_by = e.employee_id GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY orders_handled DESC;","SELECT e.first_name, e.last_name, COUNT(o.order_id) AS orders_handled FROM employees e LEFT JOIN orders o ON e.employee_id = o.employee_id GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY e.employee_id;",EXEC_FAIL: 1054 (42S22): Unknown column 'o.employee_id' in 'on clause',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L3-14,3,claude-haiku-4.5-zeroshot,False,False,0,5,What are the top 5 products by total units in stock?,"SELECT p.product_name, SUM(i.quantity) AS total_units FROM products p JOIN inventory i ON p.product_id = i.product_id GROUP BY p.product_id, p.product_name ORDER BY total_units DESC LIMIT 5;","SELECT p.product_name, SUM(s.quantity) as total_units FROM products p JOIN stock s ON p.product_id = s.product_id GROUP BY p.product_id, p.product_name ORDER BY total_units DESC LIMIT 5;",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.stock' doesn't exist,hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L4-01,4,claude-haiku-4.5-zeroshot,False,False,0,3,Which employee handled the highest total sales value of Smartphones?,"SELECT e.first_name, e.last_name, SUM(oi.quantity * oi.unit_price) AS smartphone_sales FROM employees e JOIN orders o ON e.employee_id = o.handled_by JOIN order_items oi ON o.order_id = oi.order_id JOIN products p ON oi.product_id = p.product_id JOIN categories c ON p.category_id = c.category_id WHERE c.category_name = 'Smartphones' GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY smartphone_sales DESC;","SELECT e.first_name, e.last_name, SUM(s.quantity * p.price) AS smartphone_sales FROM employees e JOIN sales s ON e.employee_id = s.employee_id JOIN products p ON s.product_id = p.product_id WHERE p.category = 'Smartphones' GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY smartphone_sales DESC LIMIT 1;",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.sales' doesn't exist,hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L4-02,4,claude-haiku-4.5-zeroshot,False,False,0,6,Which customers have spent more than the average customer?,"SELECT c.customer_id, c.first_name, c.last_name, SUM(oi.quantity * oi.unit_price) AS total_spent FROM customers c JOIN orders o ON c.customer_id = o.customer_id JOIN order_items oi ON o.order_id = oi.order_id GROUP BY c.customer_id, c.first_name, c.last_name HAVING total_spent > (SELECT AVG(cust_total) FROM (SELECT SUM(oi2.quantity * oi2.unit_price) AS cust_total FROM orders o2 JOIN order_items oi2 ON o2.order_id = oi2.order_id GROUP BY o2.customer_id) AS averages);","SELECT c.customer_id, c.first_name, c.last_name, SUM(o.total_amount) as total_spent FROM customers c JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.first_name, c.last_name HAVING SUM(o.total_amount) > (SELECT AVG(customer_total) FROM (SELECT SUM(o2.total_amount) as customer_total FROM orders o2 GROUP BY o2.customer_id) as avg_table) ORDER BY total_spent DESC;",EXEC_FAIL: 1054 (42S22): Unknown column 'o.total_amount' in 'field list',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L4-07,4,claude-haiku-4.5-zeroshot,False,False,0,14,Rank customers by total spend.,"SELECT c.first_name, c.last_name, SUM(oi.quantity * oi.unit_price) AS total_spent, RANK() OVER (ORDER BY SUM(oi.quantity * oi.unit_price) DESC) AS spend_rank FROM customers c JOIN orders o ON c.customer_id = o.customer_id JOIN order_items oi ON o.order_id = oi.order_id GROUP BY c.customer_id, c.first_name, c.last_name;","SELECT c.first_name, c.last_name, SUM(o.total_amount) as total_spent, RANK() OVER (ORDER BY SUM(o.total_amount) DESC) as spend_rank FROM customers c LEFT JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY spend_rank;",EXEC_FAIL: 1054 (42S22): Unknown column 'o.total_amount' in 'field list',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L4-08,4,claude-haiku-4.5-zeroshot,False,False,0,16,Which orders have a value greater than the average order value?,"SELECT o.order_id, SUM(oi.quantity * oi.unit_price) AS order_value FROM orders o JOIN order_items oi ON o.order_id = oi.order_id GROUP BY o.order_id HAVING order_value > (SELECT AVG(order_total) FROM (SELECT SUM(oi2.quantity * oi2.unit_price) AS order_total FROM order_items oi2 GROUP BY oi2.order_id) AS order_avgs) ORDER BY order_value DESC;","SELECT order_id, order_value FROM orders WHERE order_value > (SELECT AVG(order_value) FROM orders)",EXEC_FAIL: 1054 (42S22): Unknown column 'order_value' in 'field list',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L4-09,4,claude-haiku-4.5-zeroshot,True,False,0,5,Which customers ordered laptops that are stocked in the Berlin warehouse?,"SELECT DISTINCT c.first_name, c.last_name FROM customers c JOIN orders o ON c.customer_id = o.customer_id JOIN order_items oi ON o.order_id = oi.order_id JOIN products p ON oi.product_id = p.product_id JOIN categories cat ON p.category_id = cat.category_id JOIN inventory i ON p.product_id = i.product_id JOIN warehouses w ON i.warehouse_id = w.warehouse_id WHERE cat.category_name = 'Laptops' AND w.warehouse_name = 'Berlin Distribution Center';","SELECT DISTINCT c.first_name, c.last_name
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+JOIN inventory i ON p.product_id = i.product_id
+JOIN warehouses w ON i.warehouse_id = w.warehouse_id
+WHERE p.product_name LIKE '%laptop%'
+AND w.warehouse_name = 'Berlin'",,wrong_join_path,wrong_join_path,"Model drops the categories join entirely, substituting a loose LIKE %laptop% text filter on product_name, and shortens ""Berlin Distribution Center"" to ""Berlin"". The missing join is the root cause (LIKE match on product name cannot substitute for the categories relationship the question requires); the loose literal is a secondary, compounding filter issue."
+L4-10,4,claude-haiku-4.5-zeroshot,False,False,0,19,"Who is the top-spending customer, and what did they buy and at what price?","SELECT c.first_name, c.last_name, p.product_name, oi.quantity, oi.unit_price, (oi.quantity * oi.unit_price) AS line_total FROM customers c JOIN orders o ON c.customer_id = o.customer_id JOIN order_items oi ON o.order_id = oi.order_id JOIN products p ON oi.product_id = p.product_id WHERE c.customer_id = (SELECT o2.customer_id FROM orders o2 JOIN order_items oi2 ON o2.order_id = oi2.order_id GROUP BY o2.customer_id ORDER BY SUM(oi2.quantity * oi2.unit_price) DESC LIMIT 1) ORDER BY line_total DESC;","SELECT c.first_name, c.last_name, p.product_name, od.quantity, od.unit_price, (od.quantity * od.unit_price) AS line_total FROM customers c JOIN orders o ON c.customer_id = o.customer_id JOIN order_details od ON o.order_id = od.order_id JOIN products p ON od.product_id = p.product_id WHERE c.customer_id = (SELECT c2.customer_id FROM customers c2 JOIN orders o2 ON c2.customer_id = o2.customer_id JOIN order_details od2 ON o2.order_id = od2.order_id GROUP BY c2.customer_id ORDER BY SUM(od2.quantity * od2.unit_price) DESC LIMIT 1) ORDER BY line_total DESC;",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.order_details' doesn't exist,hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L3-04,3,gemini-3.5-flash-lite,True,False,1,1,How many distinct customers have ordered laptops?,SELECT COUNT(DISTINCT o.customer_id) AS laptop_customers FROM orders o JOIN order_items oi ON o.order_id = oi.order_id JOIN products p ON oi.product_id = p.product_id JOIN categories c ON p.category_id = c.category_id WHERE c.category_name = 'Laptops';,"SELECT COUNT(DISTINCT o.customer_id) AS laptop_customers
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+WHERE p.product_name LIKE '%laptop%'",,wrong_join_path,wrong_join_path,"Model drops the categories join, substituting LIKE %laptop% on product_name -- same missing-join pattern as L4-09."
+L3-05,3,gemini-3.5-flash-lite,True,False,11,8,What is the total revenue per product category?,"SELECT c.category_name, SUM(oi.quantity * oi.unit_price) AS revenue FROM order_items oi JOIN products p ON oi.product_id = p.product_id JOIN categories c ON p.category_id = c.category_id GROUP BY c.category_name ORDER BY revenue DESC;","SELECT 
+    c.category_name, 
+    COALESCE(SUM(oi.quantity * oi.unit_price), 0) AS revenue
+FROM 
+    categories c
+LEFT JOIN 
+    products p ON c.category_id = p.category_id
+LEFT JOIN 
+    order_items oi ON p.product_id = oi.product_id
+GROUP BY 
+    c.category_id, 
+    c.category_name",,wrong_join_path,wrong_join_path,LEFT JOIN chain (categories->products->order_items) instead of INNER JOIN -- includes categories with no revenue (COALESCE to 0) that the ground truth excludes.
+L3-06,3,gemini-3.5-flash-lite,True,False,18,14,How many orders has each customer placed?,"SELECT c.first_name, c.last_name, COUNT(o.order_id) AS order_count FROM customers c JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY order_count DESC;","SELECT c.first_name, c.last_name, COUNT(o.order_id) AS order_count
+FROM customers c
+LEFT JOIN orders o ON c.customer_id = o.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name;",,wrong_join_path,wrong_join_path,Same LEFT-vs-INNER-JOIN pattern.
+L3-07,3,gemini-3.5-flash-lite,True,False,6,3,How many orders has each employee handled?,"SELECT e.first_name, e.last_name, COUNT(o.order_id) AS orders_handled FROM employees e JOIN orders o ON o.handled_by = e.employee_id GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY orders_handled DESC;","SELECT e.first_name, e.last_name, COUNT(o.order_id) AS orders_handled
+FROM employees e
+LEFT JOIN orders o ON e.employee_id = o.handled_by
+GROUP BY e.employee_id, e.first_name, e.last_name",,wrong_join_path,wrong_join_path,Same LEFT-vs-INNER-JOIN pattern.
+L3-09,3,gemini-3.5-flash-lite,True,False,11,8,What is the average product price per category?,"SELECT c.category_name, AVG(p.price) AS avg_price FROM products p JOIN categories c ON p.category_id = c.category_id GROUP BY c.category_name ORDER BY avg_price DESC;","SELECT c.category_name, AVG(p.price) AS avg_price
+FROM categories c
+LEFT JOIN products p ON c.category_id = p.category_id
+GROUP BY c.category_id, c.category_name;",,wrong_join_path,wrong_join_path,Same LEFT-vs-INNER-JOIN pattern as claude-haiku-4.5 on the same query.
+L3-12,3,gemini-3.5-flash-lite,True,False,4,4,Which categories have total revenue above 5000 euros?,"SELECT c.category_name, SUM(oi.quantity * oi.unit_price) AS revenue FROM order_items oi JOIN products p ON oi.product_id = p.product_id JOIN categories c ON p.category_id = c.category_id GROUP BY c.category_name HAVING SUM(oi.quantity * oi.unit_price) > 5000 ORDER BY revenue DESC;","SELECT 
+    c.category_name, 
+    SUM(oi.quantity * oi.unit_price) AS revenue
+FROM 
+    categories c
+JOIN 
+    products p ON c.category_id = p.category_id
+JOIN 
+    order_items oi ON p.product_id = oi.product_id
+JOIN 
+    orders o ON oi.order_id = o.order_id
+WHERE 
+    o.status != 'Cancelled'
+GROUP BY 
+    c.category_id, 
+    c.category_name
+HAVING 
+    SUM(oi.quantity * oi.unit_price) > 5000;",,wrong_join_path,wrong_filter,"Model adds an extra join to orders and a WHERE o.status != 'Cancelled' filter the ground truth does not have -- an added filter condition that changes which order_items are summed, not a join-path or aggregation-function error."
+L4-01,4,gemini-3.5-flash-lite,True,False,1,3,Which employee handled the highest total sales value of Smartphones?,"SELECT e.first_name, e.last_name, SUM(oi.quantity * oi.unit_price) AS smartphone_sales FROM employees e JOIN orders o ON e.employee_id = o.handled_by JOIN order_items oi ON o.order_id = oi.order_id JOIN products p ON oi.product_id = p.product_id JOIN categories c ON p.category_id = c.category_id WHERE c.category_name = 'Smartphones' GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY smartphone_sales DESC;","SELECT e.first_name, e.last_name, SUM(oi.quantity * oi.unit_price) AS smartphone_sales
+FROM employees e
+JOIN orders o ON e.employee_id = o.handled_by
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+JOIN categories c ON p.category_id = c.category_id
+WHERE c.category_name = 'Smartphones'
+GROUP BY e.employee_id, e.first_name, e.last_name
+ORDER BY smartphone_sales DESC
+LIMIT 1;",,wrong_filter,column_shape_mismatch,Same LIMIT 1 vs full ranked list pattern as the other two models on L4-01.
+L4-04,4,gemini-3.5-flash-lite,True,False,22,22,"Rank all products by price, highest first.","SELECT product_name, price, RANK() OVER (ORDER BY price DESC) AS price_rank FROM products;","SELECT product_name, price, DENSE_RANK() OVER (ORDER BY price DESC) AS price_rank FROM products;",,wrong_aggregation,wrong_aggregation,DENSE_RANK() used instead of RANK() -- a genuine window-function/aggregation choice error; the two differ whenever there are price ties.
+L4-07,4,gemini-3.5-flash-lite,True,False,18,14,Rank customers by total spend.,"SELECT c.first_name, c.last_name, SUM(oi.quantity * oi.unit_price) AS total_spent, RANK() OVER (ORDER BY SUM(oi.quantity * oi.unit_price) DESC) AS spend_rank FROM customers c JOIN orders o ON c.customer_id = o.customer_id JOIN order_items oi ON o.order_id = oi.order_id GROUP BY c.customer_id, c.first_name, c.last_name;","SELECT c.first_name, c.last_name, COALESCE(SUM(oi.quantity * oi.unit_price), 0) AS total_spent, DENSE_RANK() OVER (ORDER BY COALESCE(SUM(oi.quantity * oi.unit_price), 0) DESC) AS spend_rank FROM customers c LEFT JOIN orders o ON c.customer_id = o.customer_id LEFT JOIN order_items oi ON o.order_id = oi.order_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY total_spent DESC, c.last_name, c.first_name",,wrong_join_path,wrong_join_path,LEFT JOIN instead of INNER JOIN is the change that alters the result set (adds zero-spend customers); DENSE_RANK() vs RANK() is a secondary difference on top of that.
+L4-09,4,gemini-3.5-flash-lite,True,False,0,5,Which customers ordered laptops that are stocked in the Berlin warehouse?,"SELECT DISTINCT c.first_name, c.last_name FROM customers c JOIN orders o ON c.customer_id = o.customer_id JOIN order_items oi ON o.order_id = oi.order_id JOIN products p ON oi.product_id = p.product_id JOIN categories cat ON p.category_id = cat.category_id JOIN inventory i ON p.product_id = i.product_id JOIN warehouses w ON i.warehouse_id = w.warehouse_id WHERE cat.category_name = 'Laptops' AND w.warehouse_name = 'Berlin Distribution Center';","SELECT DISTINCT c.first_name, c.last_name
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+JOIN inventory i ON p.product_id = i.product_id
+JOIN warehouses w ON i.warehouse_id = w.warehouse_id
+WHERE p.product_name LIKE '%laptop%'
+  AND w.warehouse_name = 'Berlin';",,wrong_join_path,wrong_join_path,"Same missing-categories-join, LIKE-based substitute pattern as the other L4-09 rows."
+L2-01,2,gemini-3.5-flash-lite-zeroshot,False,False,0,3,Which products are in the Laptops category?,"SELECT p.product_name, c.category_name FROM products p JOIN categories c ON p.category_id = c.category_id WHERE c.category_name = 'Laptops';","SELECT p.product_name, c.category_name FROM products p JOIN categories c ON p.category_id = c.id WHERE c.category_name = 'Laptops';",EXEC_FAIL: 1054 (42S22): Unknown column 'c.id' in 'on clause',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L2-04,2,gemini-3.5-flash-lite-zeroshot,False,False,0,12,Which orders were handled by Julia Becker?,"SELECT o.order_id, o.order_date, o.status FROM orders o JOIN employees e ON o.handled_by = e.employee_id WHERE e.first_name = 'Julia' AND e.last_name = 'Becker';","SELECT o.order_id, o.order_date, o.status 
+FROM orders o 
+JOIN employees e ON o.employee_id = e.employee_id 
+WHERE e.first_name = 'Julia' AND e.last_name = 'Becker'",EXEC_FAIL: 1054 (42S22): Unknown column 'o.employee_id' in 'on clause',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L2-05,2,gemini-3.5-flash-lite-zeroshot,False,False,0,15,What stock quantities are held in the Munich Regional Warehouse?,"SELECT i.product_id, i.quantity FROM inventory i JOIN warehouses w ON i.warehouse_id = w.warehouse_id WHERE w.warehouse_name = 'Munich Regional Warehouse';","SELECT i.product_id, i.quantity
+FROM inventories i
+JOIN warehouses w ON i.warehouse_id = w.warehouse_id
+WHERE w.warehouse_name = 'Munich Regional Warehouse';",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.inventories' doesn't exist,hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L2-06,2,gemini-3.5-flash-lite-zeroshot,False,False,0,24,Which product lines had a quantity greater than 2?,"SELECT p.product_name, oi.quantity FROM order_items oi JOIN products p ON oi.product_id = p.product_id WHERE oi.quantity > 2;","SELECT product_name, quantity FROM products WHERE quantity > 2;",EXEC_FAIL: 1054 (42S22): Unknown column 'quantity' in 'field list',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L2-07,2,gemini-3.5-flash-lite-zeroshot,False,False,0,3,Which products have a stock record below 30 units?,"SELECT p.product_name, i.quantity FROM inventory i JOIN products p ON i.product_id = p.product_id WHERE i.quantity < 30;","SELECT p.product_name, s.quantity 
+FROM products p 
+JOIN stock s ON p.product_id = s.product_id 
+WHERE s.quantity < 30",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.stock' doesn't exist,hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L2-09,2,gemini-3.5-flash-lite-zeroshot,False,False,0,8,What are the line items for all cancelled orders?,"SELECT o.order_id, oi.product_id, oi.quantity, oi.unit_price FROM order_items oi JOIN orders o ON oi.order_id = o.order_id WHERE o.status = 'cancelled';","SELECT li.order_id, li.product_id, li.quantity, li.unit_price FROM line_items li JOIN orders o ON li.order_id = o.order_id WHERE o.status = 'cancelled'",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.line_items' doesn't exist,hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L2-10,2,gemini-3.5-flash-lite-zeroshot,False,False,0,3,Which products belong to the Audio category?,"SELECT p.product_name, c.category_name FROM products p JOIN categories c ON p.category_id = c.category_id WHERE c.category_name = 'Audio';","SELECT p.product_name, c.category_name 
+FROM products p 
+JOIN categories c ON p.category_id = c.id 
+WHERE c.category_name = 'Audio';",EXEC_FAIL: 1054 (42S22): Unknown column 'c.id' in 'on clause',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L2-13,2,gemini-3.5-flash-lite-zeroshot,False,False,0,6,Which inventory records in the Hamburg Fulfillment Center hold more than 100 units?,"SELECT i.product_id, i.quantity FROM inventory i JOIN warehouses w ON i.warehouse_id = w.warehouse_id WHERE w.warehouse_name = 'Hamburg Fulfillment Center' AND i.quantity > 100;","SELECT product_id, quantity 
+FROM inventory 
+WHERE fulfillment_center = 'Hamburg' 
+  AND quantity > 100;",EXEC_FAIL: 1054 (42S22): Unknown column 'fulfillment_center' in 'where clause',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L2-14,2,gemini-3.5-flash-lite-zeroshot,False,False,0,6,Which products were sold at a unit price above 500 euros?,"SELECT DISTINCT p.product_name, oi.unit_price FROM order_items oi JOIN products p ON oi.product_id = p.product_id WHERE oi.unit_price > 500;","SELECT DISTINCT p.product_name, o.unit_price FROM products p JOIN order_details o ON p.product_id = o.product_id WHERE o.unit_price > 500",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.order_details' doesn't exist,hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L3-04,3,gemini-3.5-flash-lite-zeroshot,False,False,0,1,How many distinct customers have ordered laptops?,SELECT COUNT(DISTINCT o.customer_id) AS laptop_customers FROM orders o JOIN order_items oi ON o.order_id = oi.order_id JOIN products p ON oi.product_id = p.product_id JOIN categories c ON p.category_id = c.category_id WHERE c.category_name = 'Laptops';,"SELECT COUNT(DISTINCT c.customer_id) AS laptop_customers
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+WHERE p.category = 'Laptops'",EXEC_FAIL: 1054 (42S22): Unknown column 'p.category' in 'where clause',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L3-06,3,gemini-3.5-flash-lite-zeroshot,False,False,0,14,How many orders has each customer placed?,"SELECT c.first_name, c.last_name, COUNT(o.order_id) AS order_count FROM customers c JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY order_count DESC;","SELECT c.first_name, c.last_name, COUNT(o.id) AS order_count FROM customers c LEFT JOIN orders o ON c.id = o.customer_id GROUP BY c.id, c.first_name, c.last_name",EXEC_FAIL: 1054 (42S22): Unknown column 'o.id' in 'field list',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L3-07,3,gemini-3.5-flash-lite-zeroshot,False,False,0,3,How many orders has each employee handled?,"SELECT e.first_name, e.last_name, COUNT(o.order_id) AS orders_handled FROM employees e JOIN orders o ON o.handled_by = e.employee_id GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY orders_handled DESC;","SELECT e.first_name, e.last_name, COUNT(o.order_id) AS orders_handled
+FROM employees e
+LEFT JOIN orders o ON e.employee_id = o.employee_id
+GROUP BY e.employee_id, e.first_name, e.last_name",EXEC_FAIL: 1054 (42S22): Unknown column 'o.employee_id' in 'on clause',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L3-11,3,gemini-3.5-flash-lite-zeroshot,False,False,0,5,Which customers have placed more than 3 orders?,"SELECT c.first_name, c.last_name, COUNT(o.order_id) AS order_count FROM customers c JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.first_name, c.last_name HAVING COUNT(o.order_id) > 3 ORDER BY order_count DESC;","SELECT c.first_name, c.last_name, COUNT(o.id) AS order_count
+FROM customers c
+JOIN orders o ON c.id = o.customer_id
+GROUP BY c.id, c.first_name, c.last_name
+HAVING COUNT(o.id) > 3;",EXEC_FAIL: 1054 (42S22): Unknown column 'o.id' in 'field list',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L3-12,3,gemini-3.5-flash-lite-zeroshot,False,False,0,4,Which categories have total revenue above 5000 euros?,"SELECT c.category_name, SUM(oi.quantity * oi.unit_price) AS revenue FROM order_items oi JOIN products p ON oi.product_id = p.product_id JOIN categories c ON p.category_id = c.category_id GROUP BY c.category_name HAVING SUM(oi.quantity * oi.unit_price) > 5000 ORDER BY revenue DESC;","SELECT c.name AS category_name, SUM(p.price * s.quantity) AS revenue
+FROM categories c
+JOIN products p ON c.id = p.category_id
+JOIN sales s ON p.id = s.product_id
+GROUP BY c.id, c.name
+HAVING SUM(p.price * s.quantity) > 5000;",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.sales' doesn't exist,hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L3-14,3,gemini-3.5-flash-lite-zeroshot,False,False,0,5,What are the top 5 products by total units in stock?,"SELECT p.product_name, SUM(i.quantity) AS total_units FROM products p JOIN inventory i ON p.product_id = i.product_id GROUP BY p.product_id, p.product_name ORDER BY total_units DESC LIMIT 5;","SELECT product_name, units_in_stock AS total_units FROM products ORDER BY units_in_stock DESC LIMIT 5",EXEC_FAIL: 1054 (42S22): Unknown column 'units_in_stock' in 'field list',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L4-01,4,gemini-3.5-flash-lite-zeroshot,False,False,0,3,Which employee handled the highest total sales value of Smartphones?,"SELECT e.first_name, e.last_name, SUM(oi.quantity * oi.unit_price) AS smartphone_sales FROM employees e JOIN orders o ON e.employee_id = o.handled_by JOIN order_items oi ON o.order_id = oi.order_id JOIN products p ON oi.product_id = p.product_id JOIN categories c ON p.category_id = c.category_id WHERE c.category_name = 'Smartphones' GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY smartphone_sales DESC;","SELECT e.first_name, e.last_name, SUM(s.quantity * s.unit_price) AS smartphone_sales
+FROM employees e
+JOIN sales s ON e.employee_id = s.employee_id
+JOIN products p ON s.product_id = p.product_id
+WHERE p.category = 'Smartphone'
+GROUP BY e.employee_id, e.first_name, e.last_name
+ORDER BY smartphone_sales DESC
+LIMIT 1;",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.sales' doesn't exist,hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L4-02,4,gemini-3.5-flash-lite-zeroshot,False,False,0,6,Which customers have spent more than the average customer?,"SELECT c.customer_id, c.first_name, c.last_name, SUM(oi.quantity * oi.unit_price) AS total_spent FROM customers c JOIN orders o ON c.customer_id = o.customer_id JOIN order_items oi ON o.order_id = oi.order_id GROUP BY c.customer_id, c.first_name, c.last_name HAVING total_spent > (SELECT AVG(cust_total) FROM (SELECT SUM(oi2.quantity * oi2.unit_price) AS cust_total FROM orders o2 JOIN order_items oi2 ON o2.order_id = oi2.order_id GROUP BY o2.customer_id) AS averages);","SELECT 
+    c.customer_id, 
+    c.first_name, 
+    c.last_name, 
+    SUM(p.amount) AS total_spent
+FROM 
+    customer c
+JOIN 
+    payment p ON c.customer_id = p.customer_id
+GROUP BY 
+    c.customer_id, 
+    c.first_name, 
+    c.last_name
+HAVING 
+    SUM(p.amount) > (
+        SELECT AVG(customer_total)
+        FROM (
+            SELECT SUM(amount) AS customer_total
+            FROM payment
+            GROUP BY customer_id
+        ) AS avg_spent
+    )",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.customer' doesn't exist,hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L4-04,4,gemini-3.5-flash-lite-zeroshot,True,False,22,22,"Rank all products by price, highest first.","SELECT product_name, price, RANK() OVER (ORDER BY price DESC) AS price_rank FROM products;","SELECT product_name, price, DENSE_RANK() OVER (ORDER BY price DESC) as price_rank FROM products",,wrong_aggregation,wrong_aggregation,DENSE_RANK() instead of RANK() -- same genuine aggregation-function error as the schema-aware run on the same query.
+L4-06,4,gemini-3.5-flash-lite-zeroshot,False,False,0,8,What is the most expensive product in each category?,"SELECT p.product_name, p.price, c.category_name FROM products p JOIN categories c ON p.category_id = c.category_id WHERE p.price = (SELECT MAX(p2.price) FROM products p2 WHERE p2.category_id = p.category_id);","SELECT p.product_name, p.price, c.category_name
+FROM products p
+JOIN categories c ON p.category_id = c.id
+JOIN (
+    SELECT category_id, MAX(price) AS max_price
+    FROM products
+    GROUP BY category_id
+) m ON p.category_id = m.category_id AND p.price = m.max_price",EXEC_FAIL: 1054 (42S22): Unknown column 'c.id' in 'on clause',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L4-07,4,gemini-3.5-flash-lite-zeroshot,False,False,0,14,Rank customers by total spend.,"SELECT c.first_name, c.last_name, SUM(oi.quantity * oi.unit_price) AS total_spent, RANK() OVER (ORDER BY SUM(oi.quantity * oi.unit_price) DESC) AS spend_rank FROM customers c JOIN orders o ON c.customer_id = o.customer_id JOIN order_items oi ON o.order_id = oi.order_id GROUP BY c.customer_id, c.first_name, c.last_name;","SELECT 
+    c.first_name, 
+    c.last_name, 
+    SUM(o.total_amount) AS total_spent,
+    RANK() OVER (ORDER BY SUM(o.total_amount) DESC) AS spend_rank
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name;",EXEC_FAIL: 1054 (42S22): Unknown column 'o.total_amount' in 'field list',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L4-08,4,gemini-3.5-flash-lite-zeroshot,False,False,0,16,Which orders have a value greater than the average order value?,"SELECT o.order_id, SUM(oi.quantity * oi.unit_price) AS order_value FROM orders o JOIN order_items oi ON o.order_id = oi.order_id GROUP BY o.order_id HAVING order_value > (SELECT AVG(order_total) FROM (SELECT SUM(oi2.quantity * oi2.unit_price) AS order_total FROM order_items oi2 GROUP BY oi2.order_id) AS order_avgs) ORDER BY order_value DESC;","SELECT order_id, order_value FROM orders WHERE order_value > (SELECT AVG(order_value) FROM orders)",EXEC_FAIL: 1054 (42S22): Unknown column 'order_value' in 'field list',hallucinated_schema,hallucinated_schema,"Execution error -- model referenced a nonexistent table/column. Mechanical category, no judgment call needed."
+L4-09,4,gemini-3.5-flash-lite-zeroshot,True,False,0,5,Which customers ordered laptops that are stocked in the Berlin warehouse?,"SELECT DISTINCT c.first_name, c.last_name FROM customers c JOIN orders o ON c.customer_id = o.customer_id JOIN order_items oi ON o.order_id = oi.order_id JOIN products p ON oi.product_id = p.product_id JOIN categories cat ON p.category_id = cat.category_id JOIN inventory i ON p.product_id = i.product_id JOIN warehouses w ON i.warehouse_id = w.warehouse_id WHERE cat.category_name = 'Laptops' AND w.warehouse_name = 'Berlin Distribution Center';","SELECT DISTINCT c.first_name, c.last_name
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+JOIN inventory i ON p.product_id = i.product_id
+JOIN warehouses w ON i.warehouse_id = w.warehouse_id
+WHERE p.product_name LIKE '%laptop%' AND w.city = 'Berlin';",,wrong_join_path,wrong_join_path,"Same missing-categories-join pattern, plus w.city='Berlin' instead of the exact warehouse_name -- missing join is the root cause."

@@ -43,7 +43,7 @@ with open("results_claude.csv", encoding="utf-8") as f:
 print(f"Measuring efficiency on {len(correct_rows)} correct queries\n")
 
 out = []
-same = less = more = 0
+same = less = more = mixed = 0
 for row in correct_rows:
     qid = row["id"]
     model_sql = row["model_sql"]
@@ -55,13 +55,24 @@ for row in correct_rows:
         print(f"{qid}: EXPLAIN failed - {str(e)[:60]}")
         continue
 
-    # simple verdict: compare (scans, rows examined)
+    # Verdict: compare scans and rows-examined as two SEPARATE signals, not as
+    # a lexicographic tuple. A lexicographic (scans, rows) > (scans, rows)
+    # comparison lets a lower scan count silently outrank a much higher row
+    # count (e.g. 0 scans/41 rows vs 1 scan/20 rows was wrongly scored
+    # "model_more_efficient" even though the model examined 2x the rows).
+    # Instead: same on both -> same; strictly worse-or-equal on both signals
+    # (and at least one strictly worse) -> less efficient; strictly
+    # better-or-equal on both (and at least one strictly better) -> more
+    # efficient; otherwise the two signals disagree (fewer scans but more
+    # rows, or vice versa) -> flag as "mixed" rather than forcing a verdict.
     if (m_scans, m_rows) == (t_scans, t_rows):
         verdict = "same"; same += 1
-    elif (m_scans, m_rows) > (t_scans, t_rows):
+    elif m_scans >= t_scans and m_rows >= t_rows and (m_scans, m_rows) != (t_scans, t_rows):
         verdict = "model_less_efficient"; less += 1
-    else:
+    elif m_scans <= t_scans and m_rows <= t_rows and (m_scans, m_rows) != (t_scans, t_rows):
         verdict = "model_more_efficient"; more += 1
+    else:
+        verdict = "mixed"; mixed += 1  # e.g. fewer scans but more rows examined, or vice versa
 
     out.append([qid, row["level"], m_scans, m_rows, t_scans, t_rows, verdict])
     print(f"{qid}: model({m_scans} scans, {m_rows} rows) vs truth({t_scans} scans, {t_rows} rows) -> {verdict}")
@@ -76,4 +87,5 @@ print(f"\n=== SUMMARY (of {len(out)} correct queries) ===")
 print(f"Same efficiency:        {same}")
 print(f"Model LESS efficient:   {less}")
 print(f"Model MORE efficient:   {more}")
+print(f"Mixed (scans/rows disagree): {mixed}")
 print("Saved to efficiency.csv")

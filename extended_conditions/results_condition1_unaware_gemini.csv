@@ -1,0 +1,98 @@
+id,level,model,ran_ok,correct,model_rows,truth_rows,model_sql,error,condition
+L1-01,1,gemini-3.5-flash-lite,True,True,1,1,SELECT COUNT(*) FROM orders WHERE status = 'completed';,,condition1_unaware
+L1-02,1,gemini-3.5-flash-lite,True,False,3,3,SELECT * FROM products WHERE price > 150 AND price < 300;,,condition1_unaware
+L1-03,1,gemini-3.5-flash-lite,True,False,3,3,SELECT * FROM employees WHERE YEAR(hire_date) = 2023;,,condition1_unaware
+L1-04,1,gemini-3.5-flash-lite,True,False,5,5,SELECT * FROM products ORDER BY price DESC LIMIT 5,,condition1_unaware
+L1-05,1,gemini-3.5-flash-lite,False,False,0,7,SELECT * FROM inventory WHERE stock < 50;,EXEC_FAIL: 1054 (42S22): Unknown column 'stock' in 'where clause',condition1_unaware
+L1-06,1,gemini-3.5-flash-lite,True,True,1,1,SELECT COUNT(*) FROM categories,,condition1_unaware
+L1-07,1,gemini-3.5-flash-lite,True,False,1,1,SELECT product_name FROM products ORDER BY price ASC LIMIT 1,,condition1_unaware
+L1-08,1,gemini-3.5-flash-lite,True,False,2,2,SELECT * FROM employees WHERE manager_id IS NULL;,,condition1_unaware
+L1-09,1,gemini-3.5-flash-lite,True,False,2,2,SELECT * FROM customers WHERE city = 'Hamburg';,,condition1_unaware
+L1-10,1,gemini-3.5-flash-lite,True,False,2,2,SELECT department_name FROM departments WHERE location = 'Berlin',,condition1_unaware
+L2-01,2,gemini-3.5-flash-lite,False,False,0,3,SELECT p.* FROM products p JOIN categories c ON p.category_id = c.id WHERE c.name = 'Laptops',EXEC_FAIL: 1054 (42S22): Unknown column 'c.name' in 'where clause',condition1_unaware
+L2-02,2,gemini-3.5-flash-lite,True,False,14,14,SELECT DISTINCT c.* FROM customers c JOIN orders o ON c.customer_id = o.customer_id,,condition1_unaware
+L2-03,2,gemini-3.5-flash-lite,False,False,0,3,SELECT e.* FROM employees e JOIN departments d ON e.department_id = d.id WHERE d.name = 'Sales';,EXEC_FAIL: 1054 (42S22): Unknown column 'd.name' in 'where clause',condition1_unaware
+L2-04,2,gemini-3.5-flash-lite,False,False,0,12,SELECT o.* FROM orders o JOIN employees e ON o.employee_id = e.employee_id WHERE e.first_name = 'Julia' AND e.last_name = 'Becker',EXEC_FAIL: 1054 (42S22): Unknown column 'o.employee_id' in 'on clause',condition1_unaware
+L2-05,2,gemini-3.5-flash-lite,False,False,0,15,SELECT s.quantity FROM stock s JOIN warehouse w ON s.warehouse_id = w.id WHERE w.name = 'Munich Regional Warehouse',EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.stock' doesn't exist,condition1_unaware
+L2-06,2,gemini-3.5-flash-lite,False,False,0,24,SELECT productLine FROM products GROUP BY productLine HAVING SUM(quantityInStock) > 2,EXEC_FAIL: 1054 (42S22): Unknown column 'productLine' in 'field list',condition1_unaware
+L2-07,2,gemini-3.5-flash-lite,False,False,0,3,SELECT p.* FROM products p JOIN stock s ON p.id = s.product_id WHERE s.quantity < 30,EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.stock' doesn't exist,condition1_unaware
+L2-08,2,gemini-3.5-flash-lite,False,False,0,10,SELECT o.* FROM orders o JOIN customers c ON o.customer_id = c.id WHERE c.city = 'Munich',EXEC_FAIL: 1054 (42S22): Unknown column 'c.id' in 'on clause',condition1_unaware
+L2-09,2,gemini-3.5-flash-lite,False,False,0,8,SELECT li.* FROM line_items li JOIN orders o ON li.order_id = o.id WHERE o.status = 'cancelled',EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.line_items' doesn't exist,condition1_unaware
+L2-10,2,gemini-3.5-flash-lite,False,False,0,3,SELECT p.product_name FROM products p JOIN categories c ON p.category_id = c.id WHERE c.category_name = 'Audio',EXEC_FAIL: 1054 (42S22): Unknown column 'c.id' in 'on clause',condition1_unaware
+L2-11,2,gemini-3.5-flash-lite,False,False,0,1,SELECT e.* FROM employees e JOIN departments d ON e.department_id = d.id WHERE d.name = 'Fulfillment';,EXEC_FAIL: 1054 (42S22): Unknown column 'd.name' in 'where clause',condition1_unaware
+L2-12,2,gemini-3.5-flash-lite,True,False,19,19,SELECT o.order_id FROM orders o JOIN customers c ON o.customer_id = c.customer_id WHERE o.status = 'completed' AND c.country = 'Germany',,condition1_unaware
+L2-13,2,gemini-3.5-flash-lite,False,False,0,6,SELECT * FROM inventory WHERE warehouse = 'Hamburg Fulfillment Center' AND units > 100,EXEC_FAIL: 1054 (42S22): Unknown column 'warehouse' in 'where clause',condition1_unaware
+L2-14,2,gemini-3.5-flash-lite,True,False,6,6,SELECT DISTINCT p.* FROM products p JOIN order_items oi ON p.product_id = oi.product_id WHERE oi.unit_price > 500,,condition1_unaware
+L2-15,2,gemini-3.5-flash-lite,True,False,3,3,SELECT p.product_name FROM products p JOIN categories c ON p.category_id = c.category_id WHERE c.category_name = 'Fitness Equipment',,condition1_unaware
+L3-01,3,gemini-3.5-flash-lite,True,False,4,4,"SELECT department_id, COUNT(*) AS employee_count FROM employees GROUP BY department_id;",,condition1_unaware
+L3-02,3,gemini-3.5-flash-lite,True,False,5,5,"SELECT product_id, SUM(quantity) AS total_units_sold FROM order_items GROUP BY product_id ORDER BY total_units_sold DESC LIMIT 5;",,condition1_unaware
+L3-03,3,gemini-3.5-flash-lite,True,True,2,2,"SELECT YEAR(order_date) AS order_year, COUNT(*) AS order_count FROM orders GROUP BY YEAR(order_date);",,condition1_unaware
+L3-04,3,gemini-3.5-flash-lite,False,False,0,1,SELECT COUNT(DISTINCT customer_id) FROM orders WHERE product_type = 'laptop',EXEC_FAIL: 1054 (42S22): Unknown column 'product_type' in 'where clause',condition1_unaware
+L3-05,3,gemini-3.5-flash-lite,True,True,8,8,"SELECT c.category_name, SUM(oi.quantity * oi.unit_price) AS total_revenue FROM categories c JOIN products p ON c.category_id = p.category_id JOIN order_items oi ON p.product_id = oi.product_id GROUP BY c.category_id, c.category_name;",,condition1_unaware
+L3-06,3,gemini-3.5-flash-lite,True,False,14,14,"SELECT customer_id, COUNT(*) AS order_count FROM orders GROUP BY customer_id;",,condition1_unaware
+L3-07,3,gemini-3.5-flash-lite,False,False,0,3,"SELECT employee_id, COUNT(*) AS order_count FROM orders GROUP BY employee_id",EXEC_FAIL: 1054 (42S22): Unknown column 'employee_id' in 'field list',condition1_unaware
+L3-08,3,gemini-3.5-flash-lite,False,False,0,3,"SELECT warehouse_id, SUM(stock) AS total_stock FROM inventory GROUP BY warehouse_id",EXEC_FAIL: 1054 (42S22): Unknown column 'stock' in 'field list',condition1_unaware
+L3-09,3,gemini-3.5-flash-lite,True,False,8,8,"SELECT category_id, AVG(price) AS average_price FROM products GROUP BY category_id",,condition1_unaware
+L3-10,3,gemini-3.5-flash-lite,True,False,11,11,"SELECT c.category_id, c.category_name, COUNT(p.product_id) AS product_count FROM categories c LEFT JOIN products p ON c.category_id = p.category_id GROUP BY c.category_id, c.category_name",,condition1_unaware
+L3-11,3,gemini-3.5-flash-lite,True,False,5,5,SELECT customer_id FROM orders GROUP BY customer_id HAVING COUNT(*) > 3,,condition1_unaware
+L3-12,3,gemini-3.5-flash-lite,True,False,4,4,"SELECT c.category_name FROM categories c JOIN products p ON c.category_id = p.category_id JOIN order_items oi ON p.product_id = oi.product_id GROUP BY c.category_id, c.category_name HAVING SUM(oi.quantity * oi.unit_price) > 5000",,condition1_unaware
+L3-13,3,gemini-3.5-flash-lite,True,True,4,4,"SELECT status, COUNT(*) AS order_count FROM orders GROUP BY status;",,condition1_unaware
+L3-14,3,gemini-3.5-flash-lite,False,False,0,5,SELECT product_name FROM products ORDER BY units_in_stock DESC LIMIT 5,EXEC_FAIL: 1054 (42S22): Unknown column 'units_in_stock' in 'order clause',condition1_unaware
+L3-15,3,gemini-3.5-flash-lite,False,False,0,8,"SELECT category, AVG(sold_unit_price) AS average_sold_unit_price FROM products GROUP BY category",EXEC_FAIL: 1054 (42S22): Unknown column 'category' in 'field list',condition1_unaware
+L4-01,4,gemini-3.5-flash-lite,False,False,0,3,"SELECT e.employee_id, e.first_name, e.last_name
+FROM employees e
+JOIN sales s ON e.employee_id = s.employee_id
+JOIN products p ON s.product_id = p.product_id
+WHERE p.category = 'Smartphones'
+GROUP BY e.employee_id, e.first_name, e.last_name
+ORDER BY SUM(s.quantity * s.unit_price) DESC
+LIMIT 1;",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.sales' doesn't exist,condition1_unaware
+L4-02,4,gemini-3.5-flash-lite,False,False,0,6,"SELECT customer_id FROM (SELECT customer_id, SUM(amount) AS total_spent FROM payments GROUP BY customer_id) AS customer_totals WHERE total_spent > (SELECT AVG(customer_total) FROM (SELECT SUM(amount) AS customer_total FROM payments GROUP BY customer_id) AS avg_table)",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.payments' doesn't exist,condition1_unaware
+L4-03,4,gemini-3.5-flash-lite,True,False,8,8,SELECT product_name FROM products WHERE price > (SELECT AVG(price) FROM products),,condition1_unaware
+L4-04,4,gemini-3.5-flash-lite,True,False,22,22,"SELECT product_name, price FROM products ORDER BY price DESC;",,condition1_unaware
+L4-05,4,gemini-3.5-flash-lite,True,False,2,2,SELECT p.* FROM products p LEFT JOIN order_items o ON p.product_id = o.product_id WHERE o.product_id IS NULL,,condition1_unaware
+L4-06,4,gemini-3.5-flash-lite,False,False,0,8,"SELECT t1.category, t1.product_name, t1.price
+FROM products t1
+JOIN (
+    SELECT category, MAX(price) AS max_price
+    FROM products
+    GROUP BY category
+) t2 ON t1.category = t2.category AND t1.price = t2.max_price",EXEC_FAIL: 1054 (42S22): Unknown column 'category' in 'field list',condition1_unaware
+L4-07,4,gemini-3.5-flash-lite,False,False,0,14,"SELECT customer_id, SUM(amount) AS total_spend, RANK() OVER (ORDER BY SUM(amount) DESC) AS rank FROM customers GROUP BY customer_id",EXEC_FAIL: 1064 (42000): You have an error in your SQL syntax; check the manual that corres,condition1_unaware
+L4-08,4,gemini-3.5-flash-lite,True,False,16,16,"SELECT order_id
+FROM order_items
+GROUP BY order_id
+HAVING SUM(quantity * unit_price) > (
+    SELECT AVG(order_total)
+    FROM (
+        SELECT SUM(quantity * unit_price) AS order_total
+        FROM order_items
+        GROUP BY order_id
+    ) AS avg_table
+);",,condition1_unaware
+L4-09,4,gemini-3.5-flash-lite,False,False,0,5,"SELECT DISTINCT c.*
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+JOIN warehouse_stock ws ON p.product_id = ws.product_id
+JOIN warehouses w ON ws.warehouse_id = w.warehouse_id
+WHERE p.category = 'laptops' 
+  AND w.city = 'Berlin' 
+  AND ws.quantity > 0",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.warehouse_stock' doesn't exist,condition1_unaware
+L4-10,4,gemini-3.5-flash-lite,False,False,0,19,"SELECT 
+    c.customer_name, 
+    p.product_name, 
+    oi.price
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+WHERE c.customer_id = (
+    SELECT o_sub.customer_id
+    FROM orders o_sub
+    JOIN order_items oi_sub ON o_sub.order_id = oi_sub.order_id
+    GROUP BY o_sub.customer_id
+    ORDER BY SUM(oi_sub.price) DESC
+    LIMIT 1
+);",EXEC_FAIL: 1054 (42S22): Unknown column 'c.customer_name' in 'field list',condition1_unaware

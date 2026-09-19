@@ -1,0 +1,143 @@
+import os, csv, time, json
+from dotenv import load_dotenv
+from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
+import mysql.connector
+
+load_dotenv()
+CONDITION = "condition3_fewshot"
+
+SCHEMA = """
+Database schema (MySQL):
+customers(customer_id PK, first_name, last_name, email, city, country, created_at)
+products(product_id PK, product_name, category_id FK, price, stock_qty)
+categories(category_id PK, category_name, parent_category_id FK, description, is_active, created_at)
+orders(order_id PK, customer_id FK, handled_by FK->employees, order_date, status)
+order_items(order_item_id PK, order_id FK, product_id FK, quantity, unit_price)
+warehouses(warehouse_id PK, warehouse_name, city, country, is_active, created_at)
+inventory(inventory_id PK, product_id FK, warehouse_id FK, quantity, last_restocked, created_at)
+employees(employee_id PK, first_name, last_name, email, department_id FK, manager_id FK->employees, hire_date, created_at)
+departments(department_id PK, department_name, location, created_at)
+"""
+
+MODELS = {
+    "gpt-4.1-mini": {
+        "llm": ChatOpenAI(
+            model="gpt-4.1-mini",
+            api_key=os.getenv("AZURE_OPENAI_KEY"),
+            base_url=os.getenv("AZURE_OPENAI_ENDPOINT"),
+        ),
+        "delay": 3,
+        "outfile": "extended_conditions/results_condition3_fewshot_gpt.csv",
+        "rate_markers": ["429", "rate"],
+        "rate_base_wait": 20,
+    },
+    "gemini-3.5-flash-lite": {
+        "llm": ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite", api_key=os.getenv("GOOGLE_API_KEY")),
+        "delay": 8,
+        "outfile": "extended_conditions/results_condition3_fewshot_gemini.csv",
+        "rate_markers": ["429", "resource_exhausted", "rate"],
+        "rate_base_wait": 30,
+    },
+}
+
+# The 50 original queries are used ONLY to build the few-shot examples block below.
+# They are never scored in this condition - the 20 new L3/L4 queries are the test set.
+with open("queries.json", "r", encoding="utf-8") as f:
+    fewshot_examples = json.load(f)
+print(f"Loaded {len(fewshot_examples)} few-shot examples from queries.json")
+
+with open("extended_conditions/new_queries_l3_l4.json", "r", encoding="utf-8") as f:
+    queries = json.load(f)
+print(f"Loaded {len(queries)} test queries from new_queries_l3_l4.json")
+
+FEWSHOT_BLOCK = "\n\n".join(
+    f'Q: "{ex["question"]}"\nSQL: {ex["ground_truth_sql"]}'
+    for ex in fewshot_examples
+)
+
+def run_sql(sql):
+    conn = mysql.connector.connect(host="localhost", user="root",
+        password=os.getenv("MYSQL_PASSWORD"), database="thesis_nl2sql")
+    cur = conn.cursor(); cur.execute(sql); rows = cur.fetchall()
+    cur.close(); conn.close()
+    return rows
+
+def extract_text(response):
+    raw = response.content
+    if isinstance(raw, list):
+        parts = []
+        for item in raw:
+            if isinstance(item, dict) and "text" in item:
+                parts.append(item["text"])
+            elif isinstance(item, str):
+                parts.append(item)
+        return "".join(parts).strip()
+    return str(raw).strip()
+
+def clean_sql(text):
+    text = text.strip()
+    if text.startswith("```"):
+        text = text.split("```")[1] if "```" in text else text
+        if text.lower().startswith("sql"):
+            text = text[3:]
+    return text.strip().rstrip("`").strip()
+
+def get_model_sql(llm, question, rate_markers, rate_base_wait, max_retries=4):
+    prompt = f"""{SCHEMA}
+
+Here are {len(fewshot_examples)} example questions and their correct MySQL queries:
+
+{FEWSHOT_BLOCK}
+
+Given the schema and examples above, write a single MySQL query to answer this new question:
+"{question}"
+
+Return ONLY the SQL query, no explanation, no markdown, no code fences."""
+    for attempt in range(max_retries):
+        try:
+            response = llm.invoke(prompt)
+            return clean_sql(extract_text(response))
+        except Exception as e:
+            msg = str(e).lower()
+            if any(marker.lower() in msg for marker in rate_markers):
+                wait = rate_base_wait * (attempt + 1)
+                print(f"   rate limit, waiting {wait}s...")
+                time.sleep(wait)
+            else:
+                raise
+    raise Exception("Max retries exceeded")
+
+for model_name, cfg in MODELS.items():
+    print(f"\n=== Running {CONDITION} for {model_name} ===")
+    outfile = cfg["outfile"]
+    with open(outfile, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["id","level","model","ran_ok","correct","model_rows","truth_rows","model_sql","error","condition"])
+        for i, q in enumerate(queries, 1):
+            error = ""
+            try:
+                model_sql = get_model_sql(cfg["llm"], q["question"], cfg["rate_markers"], cfg["rate_base_wait"])
+            except Exception as e:
+                model_sql = ""; error = "GEN_FAIL: " + str(e)[:80]
+            try:
+                truth_rows = run_sql(q["ground_truth_sql"])
+            except Exception as e:
+                truth_rows = []; error += " TRUTH_FAIL: " + str(e)[:60]
+            if model_sql:
+                try:
+                    model_rows = run_sql(model_sql)
+                    ran_ok = True
+                    correct = (set(model_rows) == set(truth_rows))
+                except Exception as e:
+                    model_rows = []; ran_ok = False; correct = False
+                    error = "EXEC_FAIL: " + str(e)[:80]
+            else:
+                model_rows = []; ran_ok = False; correct = False
+            writer.writerow([q["id"], q["level"], model_name, ran_ok, correct,
+                             len(model_rows), len(truth_rows), model_sql, error, CONDITION])
+            f.flush()
+            print(f"[{i}/{len(queries)}] {q['id']} ({q['level']}): ran={ran_ok} correct={correct}")
+            if i < len(queries):
+                time.sleep(cfg["delay"])
+    print(f"Done. Results saved to {outfile}")

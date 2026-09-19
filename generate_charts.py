@@ -19,6 +19,7 @@ import matplotlib.font_manager as fm
 BLUE = "#2a78d6"
 ORANGE = "#eb6834"
 AQUA = "#1baf7a"
+GRAY_MIXED = "#9aa0a8"
 YELLOW = "#eda100"
 MAGENTA = "#e87ba4"
 
@@ -132,9 +133,9 @@ def chart3():
     reader = csv.DictReader(section.splitlines())
     rows = list(reader)
 
-    cats = ["hallucinated_schema", "wrong_join_path", "wrong_aggregation", "wrong_filter"]
-    cat_labels = ["Hallucinated schema", "Wrong join path", "Wrong aggregation", "Wrong filter"]
-    colors = [BLUE, ORANGE, AQUA, YELLOW]
+    cats = ["hallucinated_schema", "wrong_join_path", "column_shape_mismatch", "wrong_aggregation", "wrong_filter"]
+    cat_labels = ["Hallucinated schema", "Wrong join path", "Column-shape mismatch", "Wrong aggregation", "Wrong filter"]
+    colors = [BLUE, ORANGE, GRAY_MIXED, AQUA, YELLOW]
 
     labels = []
     values = {c: [] for c in cats}
@@ -202,7 +203,7 @@ def chart5():
     for m, fn in files.items():
         with open(fn, newline="", encoding="utf-8") as f:
             rows = list(csv.DictReader(f))
-        c = {"same": 0, "model_less_efficient": 0, "model_more_efficient": 0}
+        c = {"same": 0, "model_less_efficient": 0, "model_more_efficient": 0, "mixed": 0}
         classification_col = None
         for candidate in ["classification", "result", "comparison"]:
             if rows and candidate in rows[0]:
@@ -216,9 +217,9 @@ def chart5():
                 c[val] += 1
         counts[m] = c
 
-    cats = ["same", "model_less_efficient", "model_more_efficient"]
-    cat_labels = ["Same efficiency", "Model less efficient", "Model more efficient"]
-    colors = [BLUE, ORANGE, AQUA]
+    cats = ["same", "model_less_efficient", "model_more_efficient", "mixed"]
+    cat_labels = ["Same efficiency", "Model less efficient", "Model more efficient", "Mixed (scans vs. rows disagree)"]
+    colors = [BLUE, ORANGE, AQUA, GRAY_MIXED]
 
     fig, ax = plt.subplots(figsize=(7, 4.5))
     x = range(len(MODEL_ORDER))

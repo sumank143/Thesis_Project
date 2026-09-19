@@ -1,0 +1,86 @@
+id,level,model,ran_ok,correct,model_rows,truth_rows,model_sql,error,condition
+L1-01,1,gpt-4.1-mini,True,True,1,1,SELECT COUNT(*) FROM orders WHERE status = 'completed';,,condition1_unaware
+L1-02,1,gpt-4.1-mini,True,False,3,3,SELECT * FROM products WHERE price > 150 AND price < 300;,,condition1_unaware
+L1-03,1,gpt-4.1-mini,True,False,3,3,SELECT * FROM employees WHERE YEAR(hire_date) = 2023;,,condition1_unaware
+L1-04,1,gpt-4.1-mini,True,False,5,5,SELECT * FROM products ORDER BY price DESC LIMIT 5;,,condition1_unaware
+L1-05,1,gpt-4.1-mini,False,False,0,7,SELECT * FROM inventory WHERE units_in_stock < 50;,EXEC_FAIL: 1054 (42S22): Unknown column 'units_in_stock' in 'where clause',condition1_unaware
+L1-06,1,gpt-4.1-mini,True,True,1,1,SELECT COUNT(*) FROM categories;,,condition1_unaware
+L1-07,1,gpt-4.1-mini,True,False,1,1,SELECT * FROM products ORDER BY price ASC LIMIT 1;,,condition1_unaware
+L1-08,1,gpt-4.1-mini,True,False,2,2,SELECT * FROM employees WHERE manager_id IS NULL;,,condition1_unaware
+L1-09,1,gpt-4.1-mini,True,False,2,2,SELECT * FROM customers WHERE city = 'Hamburg';,,condition1_unaware
+L1-10,1,gpt-4.1-mini,True,False,2,2,SELECT department_name FROM departments WHERE location = 'Berlin';,,condition1_unaware
+L2-01,2,gpt-4.1-mini,False,False,0,3,SELECT p.* FROM products p JOIN categories c ON p.category_id = c.id WHERE c.name = 'Laptops';,EXEC_FAIL: 1054 (42S22): Unknown column 'c.name' in 'where clause',condition1_unaware
+L2-02,2,gpt-4.1-mini,True,False,14,14,SELECT DISTINCT customer_id FROM orders;,,condition1_unaware
+L2-03,2,gpt-4.1-mini,True,False,3,3,SELECT e.* FROM employees e JOIN departments d ON e.department_id = d.department_id WHERE d.department_name = 'Sales';,,condition1_unaware
+L2-04,2,gpt-4.1-mini,False,False,0,12,SELECT orders.* FROM orders JOIN employees ON orders.employee_id = employees.employee_id WHERE employees.first_name = 'Julia' AND employees.last_name = 'Becker';,EXEC_FAIL: 1054 (42S22): Unknown column 'orders.employee_id' in 'on clause',condition1_unaware
+L2-05,2,gpt-4.1-mini,False,False,0,15,SELECT stock_quantity FROM warehouses WHERE location = 'Munich Regional';,EXEC_FAIL: 1054 (42S22): Unknown column 'stock_quantity' in 'field list',condition1_unaware
+L2-06,2,gpt-4.1-mini,False,False,0,24,SELECT productLine FROM orderdetails WHERE quantityOrdered > 2;,EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.orderdetails' doesn't exist,condition1_unaware
+L2-07,2,gpt-4.1-mini,False,False,0,3,SELECT * FROM products WHERE stock < 30;,EXEC_FAIL: 1054 (42S22): Unknown column 'stock' in 'where clause',condition1_unaware
+L2-08,2,gpt-4.1-mini,True,False,10,10,SELECT orders.* FROM orders JOIN customers ON orders.customer_id = customers.customer_id WHERE customers.city = 'Munich';,,condition1_unaware
+L2-09,2,gpt-4.1-mini,False,False,0,8,SELECT li.* FROM line_items li JOIN orders o ON li.order_id = o.id WHERE o.status = 'cancelled';,EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.line_items' doesn't exist,condition1_unaware
+L2-10,2,gpt-4.1-mini,False,False,0,3,SELECT * FROM products WHERE category = 'Audio';,EXEC_FAIL: 1054 (42S22): Unknown column 'category' in 'where clause',condition1_unaware
+L2-11,2,gpt-4.1-mini,False,False,0,1,SELECT e.* FROM employees e JOIN departments d ON e.department_id = d.id WHERE d.name = 'Fulfillment';,EXEC_FAIL: 1054 (42S22): Unknown column 'd.name' in 'where clause',condition1_unaware
+L2-12,2,gpt-4.1-mini,True,False,19,19,SELECT o.* FROM orders o JOIN customers c ON o.customer_id = c.customer_id WHERE o.status = 'completed' AND c.country = 'Germany';,,condition1_unaware
+L2-13,2,gpt-4.1-mini,False,False,0,6,SELECT * FROM inventory WHERE fulfillment_center = 'Hamburg' AND units > 100;,EXEC_FAIL: 1054 (42S22): Unknown column 'fulfillment_center' in 'where clause',condition1_unaware
+L2-14,2,gpt-4.1-mini,False,False,0,6,SELECT DISTINCT product_id FROM sales WHERE unit_price > 500;,EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.sales' doesn't exist,condition1_unaware
+L2-15,2,gpt-4.1-mini,False,False,0,3,SELECT * FROM products WHERE category = 'Fitness Equipment';,EXEC_FAIL: 1054 (42S22): Unknown column 'category' in 'where clause',condition1_unaware
+L3-01,3,gpt-4.1-mini,False,False,0,4,"SELECT department, COUNT(*) AS employee_count FROM employees GROUP BY department;",EXEC_FAIL: 1054 (42S22): Unknown column 'department' in 'field list',condition1_unaware
+L3-02,3,gpt-4.1-mini,False,False,0,5,"SELECT product_id, SUM(units_sold) AS total_units_sold FROM sales GROUP BY product_id ORDER BY total_units_sold DESC LIMIT 5;",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.sales' doesn't exist,condition1_unaware
+L3-03,3,gpt-4.1-mini,True,True,2,2,"SELECT YEAR(order_date) AS order_year, COUNT(*) AS total_orders FROM orders GROUP BY order_year;",,condition1_unaware
+L3-04,3,gpt-4.1-mini,False,False,0,1,SELECT COUNT(DISTINCT customer_id) FROM orders WHERE product_category = 'laptop';,EXEC_FAIL: 1054 (42S22): Unknown column 'product_category' in 'where clause',condition1_unaware
+L3-05,3,gpt-4.1-mini,False,False,0,8,"SELECT category, SUM(revenue) AS total_revenue FROM products GROUP BY category;",EXEC_FAIL: 1054 (42S22): Unknown column 'category' in 'field list',condition1_unaware
+L3-06,3,gpt-4.1-mini,True,False,14,14,"SELECT customer_id, COUNT(*) AS order_count FROM orders GROUP BY customer_id;",,condition1_unaware
+L3-07,3,gpt-4.1-mini,False,False,0,3,"SELECT employee_id, COUNT(*) AS orders_handled FROM orders GROUP BY employee_id;",EXEC_FAIL: 1054 (42S22): Unknown column 'employee_id' in 'field list',condition1_unaware
+L3-08,3,gpt-4.1-mini,False,False,0,3,"SELECT warehouse_id, SUM(stock_quantity) AS total_stock FROM inventory GROUP BY warehouse_id;",EXEC_FAIL: 1054 (42S22): Unknown column 'stock_quantity' in 'field list',condition1_unaware
+L3-09,3,gpt-4.1-mini,False,False,0,8,"SELECT category, AVG(price) AS average_price FROM products GROUP BY category;",EXEC_FAIL: 1054 (42S22): Unknown column 'category' in 'field list',condition1_unaware
+L3-10,3,gpt-4.1-mini,True,False,11,11,"SELECT c.category_id, c.category_name, COUNT(p.product_id) AS product_count FROM categories c LEFT JOIN products p ON c.category_id = p.category_id GROUP BY c.category_id, c.category_name;",,condition1_unaware
+L3-11,3,gpt-4.1-mini,True,False,5,5,SELECT customer_id FROM orders GROUP BY customer_id HAVING COUNT(*) > 3;,,condition1_unaware
+L3-12,3,gpt-4.1-mini,False,False,0,4,"SELECT category, SUM(revenue) AS total_revenue FROM sales GROUP BY category HAVING total_revenue > 5000;",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.sales' doesn't exist,condition1_unaware
+L3-13,3,gpt-4.1-mini,True,True,4,4,"SELECT status, COUNT(*) AS order_count FROM orders GROUP BY status;",,condition1_unaware
+L3-14,3,gpt-4.1-mini,False,False,0,5,"SELECT product_name, units_in_stock FROM products ORDER BY units_in_stock DESC LIMIT 5;",EXEC_FAIL: 1054 (42S22): Unknown column 'units_in_stock' in 'field list',condition1_unaware
+L3-15,3,gpt-4.1-mini,False,False,0,8,"SELECT category, AVG(sold_unit_price) AS average_sold_unit_price FROM your_table GROUP BY category;",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.your_table' doesn't exist,condition1_unaware
+L4-01,4,gpt-4.1-mini,False,False,0,3,"SELECT employee_id, SUM(sale_value) AS total_sales
+FROM sales
+WHERE product_category = 'Smartphones'
+GROUP BY employee_id
+ORDER BY total_sales DESC
+LIMIT 1;",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.sales' doesn't exist,condition1_unaware
+L4-02,4,gpt-4.1-mini,False,False,0,6,"SELECT customer_id
+FROM orders
+GROUP BY customer_id
+HAVING SUM(total_amount) > (
+    SELECT AVG(customer_total)
+    FROM (
+        SELECT SUM(total_amount) AS customer_total
+        FROM orders
+        GROUP BY customer_id
+    ) AS customer_totals
+);",EXEC_FAIL: 1054 (42S22): Unknown column 'total_amount' in 'having clause',condition1_unaware
+L4-03,4,gpt-4.1-mini,True,False,8,8,SELECT * FROM products WHERE price > (SELECT AVG(price) FROM products);,,condition1_unaware
+L4-04,4,gpt-4.1-mini,True,False,22,22,"SELECT *, RANK() OVER (ORDER BY price DESC) AS price_rank FROM products;",,condition1_unaware
+L4-05,4,gpt-4.1-mini,True,False,2,2,SELECT p.* FROM products p LEFT JOIN order_items oi ON p.product_id = oi.product_id WHERE oi.product_id IS NULL;,,condition1_unaware
+L4-06,4,gpt-4.1-mini,False,False,0,8,"SELECT category, product_name, price FROM products p1 WHERE price = (SELECT MAX(price) FROM products p2 WHERE p2.category = p1.category);",EXEC_FAIL: 1054 (42S22): Unknown column 'category' in 'field list',condition1_unaware
+L4-07,4,gpt-4.1-mini,False,False,0,14,"SELECT customer_id, SUM(amount) AS total_spend, RANK() OVER (ORDER BY SUM(amount) DESC) AS rank FROM orders GROUP BY customer_id ORDER BY total_spend DESC;",EXEC_FAIL: 1064 (42000): You have an error in your SQL syntax; check the manual that corres,condition1_unaware
+L4-08,4,gpt-4.1-mini,False,False,0,16,SELECT * FROM orders WHERE order_value > (SELECT AVG(order_value) FROM orders);,EXEC_FAIL: 1054 (42S22): Unknown column 'order_value' in 'where clause',condition1_unaware
+L4-09,4,gpt-4.1-mini,False,False,0,5,"SELECT DISTINCT c.*
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+JOIN stock s ON p.product_id = s.product_id
+JOIN warehouses w ON s.warehouse_id = w.warehouse_id
+WHERE p.product_name LIKE '%laptop%'
+  AND w.city = 'Berlin';",EXEC_FAIL: 1146 (42S02): Table 'thesis_nl2sql.stock' doesn't exist,condition1_unaware
+L4-10,4,gpt-4.1-mini,False,False,0,19,"SELECT c.customer_id, c.customer_name, p.product_name, oi.price
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+WHERE c.customer_id = (
+    SELECT o.customer_id
+    FROM orders o
+    JOIN order_items oi ON o.order_id = oi.order_id
+    GROUP BY o.customer_id
+    ORDER BY SUM(oi.price * oi.quantity) DESC
+    LIMIT 1
+);",EXEC_FAIL: 1054 (42S22): Unknown column 'c.customer_name' in 'field list',condition1_unaware

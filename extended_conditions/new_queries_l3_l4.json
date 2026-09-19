@@ -1,0 +1,122 @@
+[
+  {
+    "id": "NEW-L3-01",
+    "level": "L3",
+    "question": "Which products have been ordered more than once by the same customer?",
+    "ground_truth_sql": "SELECT DISTINCT p.product_id, p.product_name, c.customer_id, c.first_name, c.last_name FROM products p JOIN order_items oi ON p.product_id = oi.product_id JOIN orders o ON oi.order_id = o.order_id JOIN customers c ON o.customer_id = c.customer_id GROUP BY p.product_id, c.customer_id HAVING COUNT(o.order_id) > 1;"
+  },
+  {
+    "id": "NEW-L3-02",
+    "level": "L3",
+    "question": "What is the average order value per customer city?",
+    "ground_truth_sql": "SELECT c.city, AVG(order_totals.total_value) AS avg_order_value FROM customers c JOIN orders o ON c.customer_id = o.customer_id JOIN (SELECT order_id, SUM(quantity * unit_price) AS total_value FROM order_items GROUP BY order_id) order_totals ON o.order_id = order_totals.order_id GROUP BY c.city ORDER BY avg_order_value DESC;"
+  },
+  {
+    "id": "NEW-L3-03",
+    "level": "L3",
+    "question": "How many distinct customers ordered from each product category?",
+    "ground_truth_sql": "SELECT c.category_name, COUNT(DISTINCT o.customer_id) AS distinct_customers FROM categories c LEFT JOIN products p ON c.category_id = p.category_id LEFT JOIN order_items oi ON p.product_id = oi.product_id LEFT JOIN orders o ON oi.order_id = o.order_id GROUP BY c.category_id, c.category_name ORDER BY distinct_customers DESC;"
+  },
+  {
+    "id": "NEW-L3-04",
+    "level": "L3",
+    "question": "What is the total inventory value (price x quantity) per warehouse?",
+    "ground_truth_sql": "SELECT w.warehouse_name, SUM(p.price * i.quantity) AS inventory_value FROM warehouses w JOIN inventory i ON w.warehouse_id = i.warehouse_id JOIN products p ON i.product_id = p.product_id GROUP BY w.warehouse_id, w.warehouse_name ORDER BY inventory_value DESC;"
+  },
+  {
+    "id": "NEW-L3-05",
+    "level": "L3",
+    "question": "Which employees handled orders for customers from Berlin?",
+    "ground_truth_sql": "SELECT e.employee_id, e.first_name, e.last_name, COUNT(DISTINCT o.order_id) AS order_count FROM employees e JOIN orders o ON e.employee_id = o.handled_by JOIN customers c ON o.customer_id = c.customer_id WHERE c.city = 'Berlin' GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY order_count DESC;"
+  },
+  {
+    "id": "NEW-L3-06",
+    "level": "L3",
+    "question": "What is the most and least stocked product in each warehouse?",
+    "ground_truth_sql": "SELECT w.warehouse_name, MAX(i.quantity) AS max_quantity, MIN(i.quantity) AS min_quantity FROM warehouses w JOIN inventory i ON w.warehouse_id = i.warehouse_id GROUP BY w.warehouse_id, w.warehouse_name ORDER BY w.warehouse_name;"
+  },
+  {
+    "id": "NEW-L3-07",
+    "level": "L3",
+    "question": "How many orders of each status were placed per month in 2025?",
+    "ground_truth_sql": "SELECT YEAR(o.order_date) AS order_year, MONTH(o.order_date) AS order_month, o.status, COUNT(*) AS order_count FROM orders o WHERE YEAR(o.order_date) = 2025 GROUP BY YEAR(o.order_date), MONTH(o.order_date), o.status ORDER BY order_year, order_month, o.status;"
+  },
+  {
+    "id": "NEW-L3-08",
+    "level": "L3",
+    "question": "Which categories have the highest average unit price across all orders?",
+    "ground_truth_sql": "SELECT c.category_name, AVG(oi.unit_price) AS avg_unit_price, COUNT(DISTINCT oi.order_id) AS order_count FROM categories c JOIN products p ON c.category_id = p.category_id JOIN order_items oi ON p.product_id = oi.product_id GROUP BY c.category_id, c.category_name ORDER BY avg_unit_price DESC;"
+  },
+  {
+    "id": "NEW-L3-09",
+    "level": "L3",
+    "question": "Which customers have never placed a cancelled order?",
+    "ground_truth_sql": "SELECT c.customer_id, c.first_name, c.last_name FROM customers c WHERE c.customer_id NOT IN (SELECT DISTINCT o.customer_id FROM orders o WHERE o.status = 'cancelled');"
+  },
+  {
+    "id": "NEW-L3-10",
+    "level": "L3",
+    "question": "What is the total quantity ordered for each product, including products never ordered?",
+    "ground_truth_sql": "SELECT p.product_id, p.product_name, COALESCE(SUM(oi.quantity), 0) AS total_ordered FROM products p LEFT JOIN order_items oi ON p.product_id = oi.product_id GROUP BY p.product_id, p.product_name ORDER BY total_ordered DESC;"
+  },
+  {
+    "id": "NEW-L4-01",
+    "level": "L4",
+    "question": "Which customer spent the most on products above the average price?",
+    "ground_truth_sql": "SELECT c.customer_id, c.first_name, c.last_name, SUM(oi.quantity * oi.unit_price) AS total_spent FROM customers c JOIN orders o ON c.customer_id = o.customer_id JOIN order_items oi ON o.order_id = oi.order_id JOIN products p ON oi.product_id = p.product_id WHERE p.price > (SELECT AVG(price) FROM products) GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY total_spent DESC LIMIT 1;"
+  },
+  {
+    "id": "NEW-L4-02",
+    "level": "L4",
+    "question": "Rank departments by total order value handled by their employees.",
+    "ground_truth_sql": "SELECT d.department_name, SUM(oi.quantity * oi.unit_price) AS total_value, RANK() OVER (ORDER BY SUM(oi.quantity * oi.unit_price) DESC) AS dept_rank FROM departments d JOIN employees e ON d.department_id = e.department_id JOIN orders o ON e.employee_id = o.handled_by JOIN order_items oi ON o.order_id = oi.order_id GROUP BY d.department_id, d.department_name;"
+  },
+  {
+    "id": "NEW-L4-03",
+    "level": "L4",
+    "question": "Which products have never been ordered but are in stock?",
+    "ground_truth_sql": "SELECT DISTINCT p.product_id, p.product_name, SUM(i.quantity) AS total_stock FROM products p JOIN inventory i ON p.product_id = i.product_id WHERE p.product_id NOT IN (SELECT DISTINCT product_id FROM order_items) GROUP BY p.product_id, p.product_name HAVING total_stock > 0;"
+  },
+  {
+    "id": "NEW-L4-04",
+    "level": "L4",
+    "question": "What percentage of total revenue comes from each product category?",
+    "ground_truth_sql": "SELECT c.category_name, SUM(oi.quantity * oi.unit_price) AS category_revenue, ROUND(100.0 * SUM(oi.quantity * oi.unit_price) / (SELECT SUM(quantity * unit_price) FROM order_items), 2) AS revenue_percentage FROM categories c JOIN products p ON c.category_id = p.category_id JOIN order_items oi ON p.product_id = oi.product_id GROUP BY c.category_id, c.category_name ORDER BY category_revenue DESC;"
+  },
+  {
+    "id": "NEW-L4-05",
+    "level": "L4",
+    "question": "Which employees handled the top 3 highest-value orders?",
+    "ground_truth_sql": "SELECT e.employee_id, e.first_name, e.last_name, o.order_id, SUM(oi.quantity * oi.unit_price) AS order_value FROM employees e JOIN orders o ON e.employee_id = o.handled_by JOIN order_items oi ON o.order_id = oi.order_id GROUP BY e.employee_id, e.first_name, e.last_name, o.order_id ORDER BY order_value DESC LIMIT 3;"
+  },
+  {
+    "id": "NEW-L4-06",
+    "level": "L4",
+    "question": "For each employee, show their manager and the total value they handled.",
+    "ground_truth_sql": "SELECT e.employee_id, e.first_name, e.last_name, COALESCE(m.first_name, 'No Manager') AS manager_first, COALESCE(m.last_name, '') AS manager_last, SUM(oi.quantity * oi.unit_price) AS handled_value FROM employees e LEFT JOIN employees m ON e.manager_id = m.employee_id LEFT JOIN orders o ON e.employee_id = o.handled_by LEFT JOIN order_items oi ON o.order_id = oi.order_id GROUP BY e.employee_id, e.first_name, e.last_name, m.employee_id, m.first_name, m.last_name ORDER BY handled_value DESC;"
+  },
+  {
+    "id": "NEW-L4-07",
+    "level": "L4",
+    "question": "Which product categories have more than 50 percent of their stock in Berlin?",
+    "ground_truth_sql": "SELECT c.category_name, SUM(CASE WHEN w.warehouse_name = 'Berlin Distribution Center' THEN i.quantity ELSE 0 END) AS berlin_qty, SUM(i.quantity) AS total_qty, ROUND(100.0 * SUM(CASE WHEN w.warehouse_name = 'Berlin Distribution Center' THEN i.quantity ELSE 0 END) / SUM(i.quantity), 2) AS berlin_percentage FROM categories c JOIN products p ON c.category_id = p.category_id JOIN inventory i ON p.product_id = i.product_id JOIN warehouses w ON i.warehouse_id = w.warehouse_id GROUP BY c.category_id, c.category_name HAVING berlin_percentage > 50 ORDER BY berlin_percentage DESC;"
+  },
+  {
+    "id": "NEW-L4-08",
+    "level": "L4",
+    "question": "Show customers with cumulative order totals, ranked highest to lowest.",
+    "ground_truth_sql": "SELECT c.customer_id, c.first_name, c.last_name, SUM(oi.quantity * oi.unit_price) AS total_spent, RANK() OVER (ORDER BY SUM(oi.quantity * oi.unit_price) DESC) AS customer_rank, ROUND(100.0 * SUM(oi.quantity * oi.unit_price) / (SELECT SUM(quantity * unit_price) FROM order_items), 2) AS pct_of_total FROM customers c JOIN orders o ON c.customer_id = o.customer_id JOIN order_items oi ON o.order_id = oi.order_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY total_spent DESC;"
+  },
+  {
+    "id": "NEW-L4-09",
+    "level": "L4",
+    "question": "Which orders had items from more than 3 different categories?",
+    "ground_truth_sql": "SELECT o.order_id, o.customer_id, COUNT(DISTINCT c.category_id) AS category_count, GROUP_CONCAT(DISTINCT c.category_name ORDER BY c.category_name SEPARATOR ', ') AS categories FROM orders o JOIN order_items oi ON o.order_id = oi.order_id JOIN products p ON oi.product_id = p.product_id JOIN categories c ON p.category_id = c.category_id GROUP BY o.order_id, o.customer_id HAVING COUNT(DISTINCT c.category_id) > 3 ORDER BY category_count DESC;"
+  },
+  {
+    "id": "NEW-L4-10",
+    "level": "L4",
+    "question": "What is the month-over-month growth in total order value?",
+    "ground_truth_sql": "SELECT month_summary.month, month_summary.monthly_revenue, LAG(month_summary.monthly_revenue) OVER (ORDER BY month_summary.month) AS prev_month_revenue FROM (SELECT DATE_FORMAT(order_date, '%Y-%m-01') AS month, SUM(oi.quantity * oi.unit_price) AS monthly_revenue FROM orders o JOIN order_items oi ON o.order_id = oi.order_id GROUP BY DATE_FORMAT(order_date, '%Y-%m-01')) month_summary ORDER BY month_summary.month;"
+  }
+]
