@@ -14,8 +14,12 @@ wording").
 Run from the thesis-nl2sql/ folder root:
     python extended_conditions/generate_charts_full.py
 
-Figure 8 reads extended_conditions/table9_classification.csv, produced by
-classify_failures_extended.py - run that first.
+Figure 8 reads extended_conditions/table9_classification_final.csv. That
+file does not exist until you (1) run classify_failures_extended.py to
+produce table9_classification.csv, then (2) manually review its
+"unclear"/"actually_correct_after_normalization" rows and save the
+reviewed copy as table9_classification_final.csv with a category_final
+column (defaulting unreviewed rows' category_final to their category).
 """
 import csv
 import os
@@ -142,7 +146,10 @@ def figure7_accuracy():
 def figure8_failure_categories():
     path = os.path.join(EXT, "table9_classification_final.csv")
     if not os.path.exists(path):
-        print("SKIPPED Figure 8: run classify_failures_extended.py first to produce", path)
+        print("SKIPPED Figure 8:", path, "not found - run "
+              "classify_failures_extended.py, then manually review its output "
+              "and save the reviewed copy (with a category_final column) as "
+              "table9_classification_final.csv")
         return
 
     with open(path, newline="", encoding="utf-8") as f:

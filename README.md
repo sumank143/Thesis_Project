@@ -191,14 +191,28 @@ python extended_conditions/run_condition1_unaware.py
 python extended_conditions/run_condition2_aware_no_hints.py
 python extended_conditions/run_condition3_fewshot.py
 python extended_conditions/run_condition4_precise_wording.py
-python extended_conditions/analyze_extended_results.py
-python extended_conditions/analyze_and_chart.py
+python extended_conditions/summarize_extended.py
+python extended_conditions/classify_failures_extended.py
+python extended_conditions/generate_charts_full.py
 ```
 
 Outputs stay self-contained inside the folder: `results_condition*_<model>.csv`
 (raw per-query results), `extended_summary.csv` / `final_summary.csv`
-(aggregated accuracy, by-level breakdown, and the condition 3→4 delta), and
-[extended_conditions/charts/](extended_conditions/charts/).
+(aggregated accuracy, by-level breakdown, and the condition 3→4 delta,
+produced by `summarize_extended.py`), `table9_classification.csv`
+(row-level failure category, produced by `classify_failures_extended.py`
+by executing each query's SQL against the live database — requires
+`MYSQL_PASSWORD` in `.env`), and
+[extended_conditions/charts/](extended_conditions/charts/) (Figures 7-8,
+produced by `generate_charts_full.py`).
+
+Figure 8 and Table 9's final counts additionally require a manual review
+pass: `classify_failures_extended.py` flags rows needing a manual look
+(execution errors it can't categorize, or rows found "correct after
+normalization") in its console output; save the reviewed copy as
+`table9_classification_final.csv` with a `category_final` column
+(defaulting unreviewed rows' `category_final` to their `category`) before
+running `generate_charts_full.py`.
 
 ## Repository layout
 

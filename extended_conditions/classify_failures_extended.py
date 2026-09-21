@@ -78,13 +78,16 @@ def run_sql(conn, sql):
     cur.close()
     return cols, rows
 
-def normalize_cell(v):
-    """Normalize a cell value so formatting-only differences (rounding,
-    trailing zeros, date-string granularity) don't count as a mismatch."""
+def _normalize_cell(v, round_digits):
+    """Normalize a cell value so type-only differences (Decimal vs float,
+    trailing zeros, date-string granularity) don't count as a mismatch.
+    round_digits=None keeps full numeric precision (`strict`); an int
+    rounds to that many decimal places (`loose`, to also absorb rounding /
+    precision-formula differences)."""
     if v is None:
         return None
     if isinstance(v, float):
-        return round(v, 2)
+        return v if round_digits is None else round(v, round_digits)
     if isinstance(v, int):
         return v
     s = str(v).strip()
@@ -95,16 +98,22 @@ def normalize_cell(v):
     # try numeric normalization (e.g. "12.500" vs "12.5")
     try:
         f = float(s)
-        return round(f, 2)
+        return f if round_digits is None else round(f, round_digits)
     except ValueError:
         pass
     return s.lower()
 
-def normalize_row(row):
-    return tuple(normalize_cell(v) for v in row)
+def normalize_cell_strict(v):
+    return _normalize_cell(v, round_digits=None)
 
-def normalize_rowset(rows, ignore_order=True):
-    normed = [normalize_row(r) for r in rows]
+def normalize_cell_loose(v):
+    return _normalize_cell(v, round_digits=2)
+
+def normalize_row(row, cellfn):
+    return tuple(cellfn(v) for v in row)
+
+def normalize_rowset(rows, cellfn, ignore_order=True):
+    normed = [normalize_row(r, cellfn) for r in rows]
     if ignore_order:
         return sorted(normed, key=lambda t: tuple(str(x) for x in t))
     return normed
@@ -148,37 +157,37 @@ def classify_row(conn, row, gt):
     if len(model_cols) != len(truth_cols):
         return "column_shape_mismatch", detail
 
-    # 2. Same column count: compare normalized row sets (order-insensitive,
-    #    value-normalized) - if they match exactly, it's genuinely correct
-    #    (shouldn't happen since row was marked incorrect, but guard anyway)
-    truth_norm = normalize_rowset(truth_rows, ignore_order=True)
-    model_norm = normalize_rowset(model_rows, ignore_order=True)
-    if truth_norm == model_norm:
+    # 2. Same column count: compare row sets under strict normalization
+    #    (order-insensitive, type-only normalization, no rounding) - if
+    #    they match exactly, it's genuinely correct (shouldn't happen
+    #    since row was marked incorrect, but guard anyway)
+    truth_strict = normalize_rowset(truth_rows, normalize_cell_strict, ignore_order=True)
+    model_strict = normalize_rowset(model_rows, normalize_cell_strict, ignore_order=True)
+    if truth_strict == model_strict:
         return "actually_correct_after_normalization", detail
 
-    # 3. Same column count, different normalized content but same row
-    #    count -> check order-sensitive match (catches GROUP_CONCAT
-    #    ordering / date-format differences that ignore_order doesn't)
+    # 3. Not strictly equal - retry under loose normalization (2-decimal
+    #    rounding). A match here means the rows agree once rounding /
+    #    precision-formula differences are absorbed, e.g. a percentage
+    #    computed via a different division order: genuine formatting
+    #    difference, not a reasoning error.
+    truth_loose = normalize_rowset(truth_rows, normalize_cell_loose, ignore_order=True)
+    model_loose = normalize_rowset(model_rows, normalize_cell_loose, ignore_order=True)
+    if truth_loose == model_loose:
+        return "output_formatting_mismatch", detail
+
+    # 4. Same column count, same row count, but content still differs
+    #    after loose normalization -> could still be column-shape
+    #    (different columns selected but same count) or a genuine logic
+    #    difference; check column name overlap as a hint
     if len(model_rows) == len(truth_rows):
-        truth_norm_ord = normalize_rowset(truth_rows, ignore_order=False)
-        model_norm_ord = normalize_rowset(model_rows, ignore_order=False)
-        # if the only difference is order (set-equal) or trivial formatting
-        # already normalized away above but row-for-row still differs,
-        # treat same-row-count + all-values-individually-close as formatting
-        # Try comparing as multisets one more time after normalization
-        from collections import Counter
-        if Counter(truth_norm) == Counter(model_norm):
-            return "output_formatting_mismatch", detail
-        # same row count but different actual content -> could still be
-        # column-shape (different columns selected but same count) or a
-        # genuine logic difference; check column name overlap as a hint
         truth_colset = set(c.lower() for c in truth_cols)
         model_colset = set(c.lower() for c in model_cols)
         if truth_colset != model_colset and len(truth_colset & model_colset) < len(truth_colset):
             return "column_shape_mismatch", detail
         return "wrong_filter", detail
 
-    # 4. Different row count -> genuine reasoning error: join/aggregation/filter
+    # 5. Different row count -> genuine reasoning error: join/aggregation/filter
     sql_l = model_sql.lower()
     truth_l = truth_sql.lower()
     model_joins = len(re.findall(r"\bjoin\b", sql_l))
